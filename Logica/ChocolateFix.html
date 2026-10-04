@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chocolate Fix</title>
+<style>
+:root{
+  --marron:#6b2222; --rosa:#e26189; --ambar:#d69a3c;
+  --marron-l:#a8624e; --rosa-l:#f4abc4; --ambar-l:#efc882;
+  --papel:#f8f0cf; --papel-b:#fffdf3; --tinta:#3b2b21; --linea:#c9b98a;
+  --bandeja:#c23a44; --celda:#cf4650; --ok:#2e7d32; --ko:#b3261e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+/* La barra de desplazamiento vertical no debe cambiar nunca el ancho util: eso desplaza el centro de la pagina. */
+html{scrollbar-gutter:stable}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:#fdf7e3;color:var(--tinta);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  font-size:16px;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* ---------- barra superior ---------- */
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;
+  padding:.5rem .8rem;background:#2f7fb8;color:#fff;
+}
+header h1{font-size:1.15rem;margin:0;letter-spacing:.06em;text-transform:uppercase}
+.navegador{display:flex;align-items:center;gap:.35rem;margin-left:auto}
+.navegador .btn{font-size:1.3rem;line-height:1;padding:.25rem .7rem}
+.chip{background:#fff;color:#1c5a86;border-radius:999px;padding:.25rem .7rem;font-weight:700;min-width:6.5rem;text-align:center}
+.nivel{border-radius:999px;padding:.25rem .7rem;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.05em}
+.nivel.beginner{background:#8fd694;color:#14521d}
+.nivel.intermediate{background:#f2cf6b;color:#5c4300}
+.nivel.advanced{background:#f09a5b;color:#5f2a05}
+.nivel.expert{background:#e2707a;color:#5b0f1a}
+.btn{border:0;border-radius:.55rem;padding:.5rem .8rem;background:#eaf3fa;font-weight:600}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:#ffd45e;color:#4a3000}
+.toggle{border-radius:999px;padding:.35rem .8rem;font-size:.8rem;background:#fff;color:#1c5a86}
+.toggle[aria-pressed="false"]{background:#5f9cc9;color:#dcecf7}
+select{font:inherit;border-radius:.45rem;border:0;padding:.4rem .5rem;background:#eaf3fa}
+
+/* ---------- layout ---------- */
+main{display:flex;flex-wrap:wrap;gap:1rem;padding:1rem;max-width:1180px;margin:0 auto}
+.juego{display:flex;flex-direction:column;gap:.8rem;align-items:center;width:min(92vw,340px)}
+.hojapistas{flex:1 1 340px;min-width:300px}
+
+/* ---------- tablero ---------- */
+.tablero{
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:.45rem;
+  background:var(--bandeja);padding:.55rem;border-radius:1rem;
+  width:min(92vw,340px);aspect-ratio:1;
+}
+.celda{background:var(--celda);border-radius:.6rem;display:flex;align-items:center;justify-content:center;position:relative;touch-action:manipulation;aspect-ratio:1;min-width:0;overflow:hidden}
+.celda svg{width:88%;height:88%;display:block}
+.celda.sugerida{outline:3px dashed #fff;outline-offset:-3px}
+.celda.malo{outline:4px solid #ffe082;outline-offset:-4px}
+.celda.acierto{outline:4px solid #a5d6a7;outline-offset:-4px}
+
+/* ---------- bandeja ---------- */
+.bandeja{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;
+  background:#e7d9ae;padding:.55rem;border-radius:1rem;width:min(92vw,340px);
+  min-height:4.2rem;
+}
+.ficha{background:#fff;border-radius:.5rem;display:flex;align-items:center;justify-content:center;aspect-ratio:1;touch-action:manipulation}
+.ficha svg{width:86%;height:86%;display:block}
+.ficha.elegida{outline:4px solid #2f7fb8;outline-offset:2px}
+.ficha.vacia{background:transparent;border:1px dashed var(--linea)}
+
+/* ---------- hoja de pistas ---------- */
+.hojapistas{
+  background:var(--papel);border:2px solid var(--linea);border-radius:.8rem;padding:.8rem;
+}
+.hojapistas h2{margin:0 0 .6rem;font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;text-align:center}
+.cuadrantes{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;align-items:start}
+.mini{display:grid;gap:0;background:#fff;border:1px solid #b9b9b9;padding:2px;justify-self:start}
+.mini .c{width:22px;height:22px;border:1px solid #d3d3d3;background:var(--papel-b);display:flex;align-items:center;justify-content:center;position:relative}
+.mini .c svg{width:100%;height:100%;display:block}
+.leyenda{font-size:.78rem;line-height:1.35;margin-top:.7rem;border-top:1px dashed var(--linea);padding-top:.5rem}
+.leyenda b{font-weight:700}
+
+/* ---------- mensajes ---------- */
+.mensaje{min-height:4.2rem;font-weight:600;text-align:center;width:100%}
+.mensaje.ok{color:var(--ok)}
+.mensaje.ko{color:var(--ko)}
+.mensaje.av{color:#1c5a86}
+.acciones{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
+
+/* ---------- ficha imprimible ---------- */
+#ficha{display:none}
+@media print{
+  body{background:#fff}
+  header,main,#ayuda{display:none!important}
+  #ficha{display:block;padding:1cm}
+  #ficha .hojapistas{border:0;background:#fff}
+  #ficha .tablero{background:#fff;border:2px solid #000;border-radius:0;width:9cm}
+  #ficha .celda{background:#fff;border:1px solid #000;border-radius:0}
+  #ficha h3{font-size:1.1rem;letter-spacing:.1em;text-transform:uppercase}
+}
+@media (max-width:760px){
+  main{padding:.6rem}
+  .hojapistas{order:2}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Chocolate&nbsp;Fix</h1>
+  <span class="nivel" id="nivel">beginner</span>
+  <button class="btn toggle" id="texto" aria-pressed="true" title="Mostrar u ocultar las pistas escritas">Pistas escritas</button>
+  <div class="navegador">
+    <button class="btn" id="anterior" title="Reto anterior">&#8249;</button>
+    <span class="chip" id="chip">Reto 1</span>
+    <button class="btn" id="siguiente" title="Reto siguiente">&#8250;</button>
+    <select id="lista" title="Ir a un reto"></select>
+  </div>
+</header>
+
+<main>
+  <section class="juego">
+    <div class="tablero" id="tablero"></div>
+    <div class="bandeja" id="bandeja"></div>
+    <div class="acciones">
+      <button class="btn primary" id="comprobar">Comprobar</button>
+      <button class="btn" id="solucion">Ver solución</button>
+      <button class="btn" id="reiniciar">Reiniciar</button>
+      <button class="btn" id="imprimir">Ficha imprimible</button>
+    </div>
+    <p class="mensaje" id="mensaje"></p>
+  </section>
+
+  <section class="hojapistas">
+    <h2>Pistas del reto</h2>
+    <div class="cuadrantes" id="cuadrantes"></div>
+    <div class="leyenda" id="leyenda"></div>
+    <div class="leyenda" id="pistas"></div>
+  </section>
+</main>
+
+<section id="ficha"></section>
+
+<script type="application/json" id="datos">[{"n":1,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":[null,null,null,"brown:circle",null,null,null,null,null]},{"pos":[0,1],"mini":[null,null,"pink:square",null,null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,null,null,null,null,"amber:circle",null,null]},{"pos":[1,0],"mini":[null,null,null,null,"brown:triangle",null,null,null,null]},{"pos":[1,1],"mini":[null,"pink:triangle",null,null,null,null,null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,null,null,null,"amber:triangle",null]},{"pos":[2,0],"mini":[null,null,null,null,null,"brown:square",null,null,null]},{"pos":[2,1],"mini":["pink",null,null,null,null,null,null,null,null]},{"pos":[2,2],"mini":[null,null,null,null,null,null,null,null,"square"]}],"solucion":["pink:circle","pink:triangle","pink:square","brown:circle","brown:triangle","brown:square","amber:circle","amber:triangle","amber:square"]},{"n":2,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["amber:square",null,null,null,null,null,null,null,null]},{"pos":[0,1],"mini":[null,"brown:square",null,null,null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,"brown",null,null,null,null,null,null]},{"pos":[1,0],"mini":[null,null,null,"brown:circle",null,null,null,null,null]},{"pos":[1,1],"mini":[null,null,null,null,"pink:square",null,null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,null,"pink",null,null,null]},{"pos":[2,0],"mini":[null,null,null,null,null,null,"pink:circle",null,null]},{"pos":[2,1],"mini":[null,null,null,null,null,null,null,"amber:triangle",null]},{"pos":[2,2],"mini":[null,null,null,null,null,null,null,null,"amber"]}],"solucion":["amber:square","brown:square","brown:triangle","brown:circle","pink:square","pink:triangle","pink:circle","amber:triangle","amber:circle"]},{"n":3,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["brown",null,null,"brown",null,null,"brown",null,null]},{"pos":[0,1],"mini":[null,"pink",null,null,"pink",null,null,"pink",null]},{"pos":[0,2],"mini":[null,null,"amber",null,null,"amber",null,null,"amber"]},{"pos":[1,0],"mini":["square","square","square",null,null,null,null,null,null]},{"pos":[1,1],"mini":[null,null,null,"circle","circle","circle",null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,null,null,"triangle","triangle","triangle"]}],"solucion":["brown:square","pink:square","amber:square","brown:circle","pink:circle","amber:circle","brown:triangle","pink:triangle","amber:triangle"]},{"n":4,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["brown","brown","brown","amber","amber","amber","pink","pink","pink"]},{"pos":[0,2],"mini":[null,null,"square",null,"square",null,null,null,"square"]},{"pos":[2,1],"mini":["circle",null,null,null,null,"circle","circle",null,null]}],"solucion":["brown:circle","brown:triangle","brown:square","amber:triangle","amber:square","amber:circle","pink:circle","pink:triangle","pink:square"]},{"n":5,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["circle","circle","square","circle","square","triangle","square","triangle","triangle"]},{"pos":[0,2],"mini":["amber","pink","pink","brown","amber","pink","brown","brown","amber"]}],"solucion":["amber:circle","pink:circle","pink:square","brown:circle","amber:square","pink:triangle","brown:square","brown:triangle","amber:triangle"]},{"n":6,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["pink","pink",null,"pink",null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,null,null,"brown","brown",null,"brown",null]},{"pos":[2,0],"mini":[null,"circle","circle",null,null,"circle",null,null,null]},{"pos":[2,2],"mini":[null,null,null,"square","square",null,"square",null,null]}],"solucion":["pink:triangle","pink:circle","amber:circle","pink:square","brown:square","brown:circle","amber:square","brown:triangle","amber:triangle"]},{"n":7,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["circle","amber","triangle",null,null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,"pink",null,null,"square",null,null,"amber"]},{"pos":[2,0],"mini":["brown",null,null,"triangle",null,null,"amber",null,null]},{"pos":[2,2],"mini":[null,null,null,null,null,null,"square","brown","triangle"]}],"solucion":["brown:circle","amber:circle","pink:triangle","brown:triangle","pink:circle","pink:square","amber:square","brown:square","amber:triangle"]},{"n":8,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":[null,null,"brown",null,null,"brown",null,null,"brown"]},{"pos":[0,2],"mini":[null,null,null,"amber",null,null,"amber",null,null]},{"pos":[2,0],"mini":[null,null,null,null,null,null,null,"pink",null]},{"pos":[2,2],"mini":["circle","triangle","square","circle","square","triangle","triangle","square","circle"]}],"solucion":["pink:circle","pink:triangle","brown:square","amber:circle","amber:square","brown:triangle","amber:triangle","pink:square","brown:circle"]},{"n":9,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":[null,null,"pink",null,null,"pink",null,null,"pink"]},{"pos":[0,1],"mini":["brown",null,null,"brown",null,null,"brown",null,null]},{"pos":[0,2],"mini":[null,"amber",null,null,"amber",null,null,"amber",null]},{"pos":[2,0],"mini":[null,null,null,"square","circle","triangle",null,null,null]},{"pos":[2,1],"mini":[null,null,null,null,null,null,"triangle","square","circle"]},{"pos":[2,2],"mini":["circle","triangle","square",null,null,null,null,null,null]}],"solucion":["brown:circle","amber:triangle","pink:square","brown:square","amber:circle","pink:triangle","brown:triangle","amber:square","pink:circle"]},{"n":10,"nivel":"beginner","bloques":[{"pos":[0,0],"mini":["brown","square",null,null,null,null,null,null,null]},{"pos":[0,1],"mini":[null,"brown","triangle",null,null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,"amber",null,null,"triangle",null,null,null]},{"pos":[2,0],"mini":[null,null,null,null,null,null,"circle","amber:square",null]},{"pos":[2,1],"mini":["circle",null,null,"pink",null,null,null,null,null]},{"pos":[2,2],"mini":[null,null,null,null,null,"pink",null,null,"square"]}],"solucion":["brown:circle","brown:square","amber:triangle","pink:circle","brown:triangle","pink:triangle","amber:circle","amber:square","pink:square"]},{"n":11,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":["square","amber:square","brown",null,"circle",null,null,"triangle",null]},{"pos":[0,1],"mini":["brown",null,null,"brown:triangle","amber","circle","amber",null,null]}],"solucion":["brown:square","amber:square","brown:circle","brown:triangle","amber:circle","pink:circle","amber:triangle","pink:triangle","pink:square"]},{"n":12,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,null,"pink:triangle","amber:square"],"size":[3,2],"anchor":"tr"},{"pos":[0,1],"mini":[null,null,null,"brown:square",null,null,"amber:circle",null,null],"size":[2,3],"anchor":"bl"},{"pos":[1,0],"mini":[null,null,"pink:square",null,null,"brown:circle",null,null,null]},{"pos":[1,1],"mini":["pink:circle","amber:triangle",null,null,null,null,null,null,null]},{"pos":[2,1],"mini":["circle",null,null,null,null,null,null,null,null]}],"solucion":["pink:circle","amber:triangle","pink:square","brown:square","brown:triangle","brown:circle","amber:circle","pink:triangle","amber:square"]},{"n":13,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,null,"pink",null]},{"pos":[0,1],"mini":[null,null,"brown:square",null,null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,null,null,null,null,null,null,"amber:circle"]},{"pos":[1,0],"mini":[null,null,null,"brown:circle",null,null,null,null,null]},{"pos":[1,1],"mini":["triangle",null,null,null,null,null,null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,null,null,"pink:square",null,null],"size":[1,3],"anchor":"bl"},{"pos":[2,0],"mini":[null,null,null,null,"square",null,null,null,null]},{"pos":[2,1],"mini":[null,null,null,null,null,"amber:triangle",null,null,null]},{"pos":[2,2],"mini":[null,"brown",null,null,null,null,null,null,null]}],"solucion":["pink:triangle","brown:triangle","brown:square","brown:circle","amber:square","amber:triangle","pink:square","pink:circle","amber:circle"]},{"n":14,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,"brown:square",null,null,"brown",null,null,"brown",null]},{"pos":[0,1],"mini":["amber:circle",null,null,null,null,null,null,null,null]},{"pos":[0,2],"mini":[null,null,null,"triangle","triangle","amber:triangle",null,null,null],"size":[2,3],"anchor":"bl"},{"pos":[1,1],"mini":[null,null,null,null,null,null,null,null,"pink:circle"],"size":[3,1],"anchor":"tr"},{"pos":[2,1],"mini":[null,null,null,null,null,null,"pink:square",null,null],"size":[1,2],"anchor":"bl"}],"solucion":["amber:circle","brown:square","amber:square","pink:triangle","brown:triangle","amber:triangle","pink:square","brown:circle","pink:circle"]},{"n":15,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,null,null,"square",null,null,null,null,null]},{"pos":[0,1],"mini":[null,null,null,null,null,"brown",null,null,null]},{"pos":[0,2],"mini":[null,null,null,null,null,null,null,"amber",null]},{"pos":[1,0],"mini":["amber",null,null,null,null,null,"pink",null,null]},{"pos":[1,1],"mini":[null,"pink",null,null,null,null,null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,null,null,null,null,"triangle"]},{"pos":[2,0],"mini":[null,null,"triangle",null,null,null,null,"circle",null]},{"pos":[2,1],"mini":[null,null,"amber",null,null,null,null,null,null]},{"pos":[2,2],"mini":[null,null,null,null,null,"square","circle",null,null]}],"solucion":["amber:square","pink:triangle","amber:triangle","pink:square","brown:circle","brown:square","pink:circle","amber:circle","brown:triangle"]},{"n":16,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":["amber","pink","amber","brown","amber","brown","brown","pink","pink"]},{"pos":[0,2],"mini":[null,null,"square",null,null,"square",null,null,"square"],"size":[3,1],"anchor":"tr"},{"pos":[1,0],"mini":[null,null,null,"triangle",null,null,null,"triangle",null],"size":[2,2],"anchor":"bl"},{"pos":[1,2],"mini":[null,"circle",null,null,"circle",null,null,null,null],"size":[2,1],"anchor":"tc"}],"solucion":["amber:triangle","pink:circle","amber:square","brown:triangle","amber:circle","brown:square","brown:circle","pink:triangle","pink:square"]},{"n":17,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,null,"pink:triangle",null]},{"pos":[0,1],"mini":[null,null,null,null,null,null,null,null,"pink:square"],"size":[3,2],"anchor":"tr"},{"pos":[0,2],"mini":["pink",null,null,null,null,null,"brown:circle",null,null],"size":[3,1],"anchor":"tl"},{"pos":[1,0],"mini":[null,null,null,"amber:square",null,"circle",null,null,null],"size":[1,3],"anchor":"ml"},{"pos":[1,1],"mini":[null,"square",null,null,"triangle",null,null,null,null],"size":[3,1],"anchor":"tc"},{"pos":[1,2],"mini":[null,null,"brown",null,null,null,null,null,null],"size":[1,3],"anchor":"tr"}],"solucion":["pink:circle","brown:square","brown:triangle","amber:square","amber:triangle","amber:circle","brown:circle","pink:triangle","pink:square"]},{"n":18,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,"amber",null,null,null,"amber",null,"amber",null],"size":[3,2],"anchor":"tr"},{"pos":[0,2],"mini":["pink",null,null,null,"pink",null,null,null,"pink"]},{"pos":[1,0],"mini":[null,null,"triangle",null,"square",null,null,null,"triangle"],"size":[3,2],"anchor":"tr"},{"pos":[1,2],"mini":[null,"triangle",null,"circle",null,null,null,"square",null],"size":[3,2],"anchor":"tl"}],"solucion":["pink:circle","amber:triangle","brown:triangle","brown:circle","pink:square","amber:circle","brown:square","amber:square","pink:triangle"]},{"n":19,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":["square","circle","circle","square","triangle","square","circle","triangle","triangle"]},{"pos":[0,1],"mini":[null,null,null,null,null,null,"brown","brown",null],"size":[3,2],"anchor":"bl"},{"pos":[0,2],"mini":["brown",null,null,null,null,null,null,null,null],"size":[3,1],"anchor":"tl"},{"pos":[1,0],"mini":[null,null,null,null,"pink",null,null,null,null],"size":[2,3],"anchor":"tl"},{"pos":[1,1],"mini":[null,null,null,"amber",null,null,null,null,null],"size":[2,2],"anchor":"tl"},{"pos":[1,2],"mini":[null,"amber",null,null,null,null,null,null,null],"size":[1,3],"anchor":"tl"}],"solucion":["brown:square","amber:circle","pink:circle","amber:square","pink:triangle","pink:square","brown:circle","brown:triangle","amber:triangle"]},{"n":20,"nivel":"intermediate","bloques":[{"pos":[0,0],"mini":[null,null,null,"pink","pink","pink",null,null,null],"size":[1,3],"anchor":"ml"},{"pos":[0,1],"mini":[null,null,null,null,null,null,null,null,"amber:square"],"size":[1,3],"anchor":"br"},{"pos":[0,2],"mini":[null,"circle",null,null,null,"circle",null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[1,0],"mini":[null,null,"brown:triangle",null,null,null,null,null,null],"size":[2,3],"anchor":"tl"},{"pos":[1,1],"mini":["brown","brown",null,null,null,null,null,null,null],"size":[1,2],"anchor":"tl"},{"pos":[1,2],"mini":[null,null,null,"square",null,"circle",null,null,null],"size":[2,3],"anchor":"tl"},{"pos":[2,1],"mini":[null,null,null,null,null,null,"amber:triangle",null,null]}],"solucion":["brown:square","brown:circle","brown:triangle","pink:square","pink:triangle","pink:circle","amber:triangle","amber:circle","amber:square"]},{"n":21,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,"amber",null,null]},{"pos":[0,1],"mini":[null,null,null,null,null,null,null,"pink:circle",null],"size":[3,2],"anchor":"mr"},{"pos":[0,2],"mini":[null,null,null,"pink:square",null,null,null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[1,0],"mini":[null,null,null,null,"brown",null,null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[1,1],"mini":[null,"amber:triangle",null,null,null,null,null,null,null],"size":[1,3],"anchor":"tc"},{"pos":[1,2],"mini":["amber:circle",null,null,null,null,null,null,null,null],"size":[2,2],"anchor":"tl"},{"pos":[2,0],"mini":[null,null,"pink",null,null,null,null,null,null],"size":[3,1],"anchor":"mr"},{"pos":[2,1],"mini":[null,null,null,null,null,"square",null,null,null],"size":[2,3],"anchor":"bc"},{"pos":[2,2],"mini":[null,null,null,null,null,null,null,null,"circle"],"size":[1,3],"anchor":"bc"}],"solucion":["amber:circle","amber:triangle","pink:triangle","pink:square","brown:triangle","brown:square","amber:square","pink:circle","brown:circle"]},{"n":22,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,null,"pink:triangle",null,"brown",null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[0,1],"mini":[null,null,null,null,null,null,null,"pink",null],"size":[2,3],"anchor":"bc"},{"pos":[0,2],"mini":[null,null,"square",null,"brown:circle",null,null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[1,0],"mini":["circle",null,null,null,"circle",null,null,null,"circle"]},{"pos":[1,1],"mini":["amber","amber","amber",null,null,null,null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,null,null,"triangle",null,null],"size":[3,2],"anchor":"ml"}],"solucion":["amber:circle","amber:triangle","amber:square","pink:triangle","brown:circle","brown:square","brown:triangle","pink:square","pink:circle"]},{"n":23,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,"triangle",null,null,null],"size":[2,3],"anchor":"bc"},{"pos":[0,1],"mini":[null,null,null,null,null,"triangle",null,"pink:triangle","triangle"],"size":[2,3],"anchor":"bc"},{"pos":[0,2],"mini":[null,null,null,null,"brown:square",null,null,null,null],"size":[2,2],"anchor":"tl"},{"pos":[1,0],"mini":[null,null,null,null,null,null,"square",null,"amber"],"size":[1,3],"anchor":"bc"},{"pos":[1,1],"mini":[null,null,"brown:circle",null,null,null,null,null,null]},{"pos":[1,2],"mini":["pink:square",null,null,null,null,null,null,null,null],"size":[3,1],"anchor":"ml"},{"pos":[2,0],"mini":[null,null,null,"pink:circle",null,null,null,null,null],"size":[2,2],"anchor":"bl"},{"pos":[2,1],"mini":[null,"amber:circle",null,null,null,null,null,null,null],"size":[2,2],"anchor":"tl"}],"solucion":["pink:square","amber:circle","brown:circle","pink:circle","brown:square","brown:triangle","amber:square","pink:triangle","amber:triangle"]},{"n":24,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":["pink","amber","amber","pink","brown","amber","pink","brown","brown"]},{"pos":[0,1],"mini":[null,null,"circle",null,"circle",null,null,null,null],"size":[3,2],"anchor":"mr"},{"pos":[1,0],"mini":[null,"square",null,"square",null,null,null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[1,1],"mini":[null,null,null,null,null,null,"triangle",null,"triangle"],"size":[2,3],"anchor":"bc"}],"solucion":["pink:circle","amber:square","amber:circle","pink:square","brown:circle","amber:triangle","pink:triangle","brown:square","brown:triangle"]},{"n":25,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,"amber",null,"brown",null,null,null,null]},{"pos":[0,1],"mini":[null,null,"circle",null,null,"amber",null,null,null],"size":[3,2],"anchor":"mr"},{"pos":[0,2],"mini":["amber:square",null,null,null,"circle",null,"circle",null,null],"size":[3,2],"anchor":"ml"},{"pos":[1,1],"mini":[null,null,null,null,null,null,null,"triangle","brown:triangle"],"size":[1,2],"anchor":"br"},{"pos":[2,1],"mini":[null,null,null,"pink",null,null,null,null,null],"size":[2,1],"anchor":"bl"}],"solucion":["amber:square","brown:square","amber:circle","pink:square","brown:circle","amber:triangle","pink:circle","pink:triangle","brown:triangle"]},{"n":26,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,null,"brown","amber","brown","amber","brown","amber"]},{"pos":[0,1],"mini":[null,null,null,"circle",null,null,"circle",null,null],"size":[2,1],"anchor":"ml"},{"pos":[0,2],"mini":[null,"circle",null,"circle",null,null,null,null,null],"size":[2,2],"anchor":"tl"},{"pos":[1,1],"mini":[null,null,"triangle",null,null,"triangle",null,null,null],"size":[2,1],"anchor":"tr"},{"pos":[2,1],"mini":[null,null,null,null,"triangle","triangle",null,null,null],"size":[1,2],"anchor":"mr"}],"solucion":["pink:square","pink:circle","pink:triangle","brown:circle","amber:triangle","brown:triangle","amber:circle","brown:square","amber:square"]},{"n":27,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,"square",null,"square","square",null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[0,1],"mini":[null,null,null,"circle",null,null,"circle",null,null],"size":[2,1],"anchor":"ml"},{"pos":[1,0],"mini":[null,null,null,null,null,null,"circle","circle",null],"size":[1,2],"anchor":"bl"},{"pos":[1,1],"mini":["brown","pink","amber","pink","brown",null,"brown",null,null]}],"solucion":["brown:triangle","pink:triangle","amber:square","pink:circle","brown:square","pink:square","brown:circle","amber:circle","amber:triangle"]},{"n":28,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,null,null,"brown"],"size":[3,2],"anchor":"tr"},{"pos":[0,1],"mini":[null,null,null,null,null,null,null,null,"square"],"size":[2,3],"anchor":"bl"},{"pos":[0,2],"mini":[null,null,null,null,null,"circle",null,"amber",null],"size":[3,3],"anchor":"tl"},{"pos":[1,0],"mini":[null,null,null,null,null,null,"circle","circle",null],"size":[1,2],"anchor":"bl"},{"pos":[1,1],"mini":[null,"square",null,null,"pink:square",null,null,null,null],"size":[2,1],"anchor":"tc"},{"pos":[1,2],"mini":[null,"square",null,null,null,null,"pink",null,null],"size":[3,2],"anchor":"tl"},{"pos":[2,0],"mini":[null,null,null,"brown:triangle",null,null,null,null,null],"size":[2,1],"anchor":"ml"},{"pos":[2,1],"mini":[null,null,"amber:triangle",null,null,null,null,null,null],"size":[1,2],"anchor":"tr"}],"solucion":["pink:triangle","amber:square","amber:triangle","brown:triangle","pink:square","brown:circle","pink:circle","amber:circle","brown:square"]},{"n":29,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":["brown:circle","triangle",null,null,null,null,null,null,null],"size":[3,2],"anchor":"tl"},{"pos":[0,1],"mini":[null,null,null,"amber",null,null,"pink:square",null,null],"size":[2,3],"anchor":"bc"},{"pos":[0,2],"mini":[null,null,null,null,null,null,null,null,"circle"],"size":[2,3],"anchor":"bc"},{"pos":[1,0],"mini":[null,null,null,null,null,"square",null,null,null],"size":[2,3],"anchor":"bc"},{"pos":[1,1],"mini":[null,null,null,null,null,null,null,"brown",null],"size":[3,2],"anchor":"tl"},{"pos":[1,2],"mini":[null,null,"amber:circle",null,null,null,null,null,null],"size":[3,2],"anchor":"tr"},{"pos":[2,0],"mini":[null,null,null,null,"brown:triangle",null,null,null,null],"size":[3,2],"anchor":"tl"},{"pos":[2,1],"mini":[null,null,null,"triangle",null,null,null,null,null],"size":[2,3],"anchor":"bc"}],"solucion":["brown:circle","pink:triangle","amber:circle","amber:triangle","brown:triangle","amber:square","pink:square","brown:square","pink:circle"]},{"n":30,"nivel":"advanced","bloques":[{"pos":[0,0],"mini":[null,null,null,"pink",null,null,null,null,null]},{"pos":[0,1],"mini":[null,"pink:square",null,null,null,null,null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[0,2],"mini":[null,null,null,null,null,"amber:circle",null,null,null],"size":[3,1],"anchor":"tr"},{"pos":[1,0],"mini":[null,null,null,null,null,null,"square",null,null],"size":[2,3],"anchor":"bc"},{"pos":[1,1],"mini":[null,null,null,null,"brown",null,null,null,"circle"],"size":[2,2],"anchor":"br"},{"pos":[1,2],"mini":[null,null,"amber:square",null,null,null,null,null,null],"size":[2,1],"anchor":"tr"},{"pos":[2,0],"mini":["amber:triangle",null,null,null,null,null,null,null,null],"size":[1,3],"anchor":"tl"},{"pos":[2,1],"mini":[null,null,null,null,null,null,null,"pink:triangle",null],"size":[1,2],"anchor":"bl"}],"solucion":["amber:triangle","pink:square","amber:square","pink:circle","brown:triangle","amber:circle","brown:square","pink:triangle","brown:circle"]},{"n":31,"nivel":"expert","bloques":[{"pos":[0,0],"mini":["circle","triangle","square","triangle","circle","square","circle","square","triangle"]},{"pos":[0,1],"mini":[null,null,"pink",null,"pink",null,null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[1,0],"mini":[null,null,null,null,"pink","amber",null,null,null],"size":[1,2],"anchor":"mr"},{"pos":[1,1],"mini":[null,"amber",null,null,null,"amber",null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[2,1],"mini":[null,null,null,"brown",null,null,"amber",null,null],"size":[2,1],"anchor":"ml"}],"solucion":["brown:circle","amber:triangle","pink:square","brown:triangle","pink:circle","amber:square","amber:circle","brown:square","pink:triangle"]},{"n":32,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,null,"brown",null,"brown",null,null,null,"brown"],"size":[3,2],"anchor":"tr"},{"pos":[0,1],"mini":[null,null,null,null,null,null,null,"circle",null],"size":[2,3],"anchor":"bc"},{"pos":[0,2],"mini":["square",null,null,null,"square",null,"square",null,null],"size":[3,2],"anchor":"tl"},{"pos":[1,0],"mini":[null,"amber",null,null,null,null,null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[1,1],"mini":[null,null,null,null,null,"triangle",null,"amber",null],"size":[3,2],"anchor":"tr"},{"pos":[1,2],"mini":["pink",null,"circle",null,null,null,null,null,null],"size":[2,3],"anchor":"tc"}],"solucion":["pink:square","amber:triangle","brown:circle","pink:circle","brown:square","pink:triangle","amber:square","amber:circle","brown:triangle"]},{"n":33,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,null,"brown:circle",null],"size":[2,3],"anchor":"bc"},{"pos":[0,1],"mini":[null,null,"circle",null,null,null,null,null,null],"size":[3,2],"anchor":"tr"},{"pos":[0,2],"mini":[null,null,null,null,null,null,"amber",null,null],"size":[2,3],"anchor":"bc"},{"pos":[1,0],"mini":[null,"amber:triangle",null,null,null,null,null,null,null],"size":[3,2],"anchor":"tr"},{"pos":[1,1],"mini":[null,null,null,"triangle",null,null,null,null,null]},{"pos":[1,2],"mini":[null,null,null,null,"pink",null,null,null,null],"size":[3,2],"anchor":"tl"},{"pos":[2,0],"mini":["square",null,null,null,null,null,null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[2,1],"mini":[null,null,null,null,null,null,null,null,"brown:square"],"size":[3,2],"anchor":"tr"},{"pos":[2,2],"mini":[null,null,null,null,null,"amber:square",null,null,null],"size":[2,3],"anchor":"bc"}],"solucion":["pink:square","amber:triangle","pink:circle","brown:triangle","pink:triangle","amber:square","amber:circle","brown:circle","brown:square"]},{"n":34,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,null,null,"amber","amber","amber",null,null,null]},{"pos":[0,1],"mini":[null,null,null,"circle",null,null,"circle","circle",null],"size":[2,2],"anchor":"bl"},{"pos":[0,2],"mini":[null,"square","square",null,"square",null,null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[1,0],"mini":[null,null,null,null,null,null,null,"brown","brown"],"size":[3,2],"anchor":"tr"},{"pos":[1,1],"mini":["pink","pink",null,null,null,null,null,null,null],"size":[3,2],"anchor":"tl"},{"pos":[1,2],"mini":["triangle",null,null,null,null,"triangle",null,null,null]}],"solucion":["pink:triangle","pink:square","brown:square","amber:circle","amber:square","amber:triangle","pink:circle","brown:circle","brown:triangle"]},{"n":35,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,null,null,null,null,null,null,"amber",null],"size":[3,2],"anchor":"tl"},{"pos":[0,1],"mini":[null,"circle","square",null,null,null,null,null,null],"size":[2,2],"anchor":"tr"},{"pos":[0,2],"mini":[null,null,"brown",null,null,null,null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[1,0],"mini":[null,null,null,null,null,"triangle",null,null,"pink"],"size":[2,3],"anchor":"bc"},{"pos":[1,1],"mini":["brown",null,null,"square",null,null,null,null,null],"size":[2,3],"anchor":"tc"},{"pos":[1,2],"mini":[null,null,null,"amber",null,null,"pink",null,null],"size":[2,3],"anchor":"bc"},{"pos":[2,0],"mini":[null,null,null,null,null,null,null,null,"circle"],"size":[3,2],"anchor":"tr"},{"pos":[2,1],"mini":["triangle","amber",null,null,null,null,null,null,null],"size":[2,2],"anchor":"tl"}],"solucion":["brown:triangle","amber:circle","brown:square","amber:square","brown:circle","pink:triangle","pink:square","amber:triangle","pink:circle"]},{"n":36,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,null,null,null,"pink",null,"pink",null,"pink"],"size":[2,3],"anchor":"bc"},{"pos":[0,1],"mini":[null,"amber",null,"brown",null,null,null,null,null],"size":[2,2],"anchor":"tl"},{"pos":[0,2],"mini":[null,null,null,null,null,"brown:circle",null,null,"square"],"size":[2,1],"anchor":"mr"},{"pos":[1,0],"mini":[null,"circle","brown",null,null,null,null,null,null],"size":[1,2],"anchor":"tc"},{"pos":[1,1],"mini":[null,null,null,null,"pink",null,null,null,"square"],"size":[2,2],"anchor":"br"},{"pos":[1,2],"mini":["triangle",null,"triangle",null,"triangle",null,null,null,null],"size":[2,3],"anchor":"tc"}],"solucion":["amber:triangle","amber:circle","brown:triangle","brown:square","pink:triangle","brown:circle","pink:circle","amber:square","pink:square"]},{"n":37,"nivel":"expert","bloques":[{"pos":[0,0],"mini":["square",null,null,null,null,null,null,null,"brown:square"]},{"pos":[0,1],"mini":[null,"pink",null,null,"amber",null,null,null,null],"size":[3,1],"anchor":"tc"},{"pos":[0,2],"mini":[null,null,null,"brown",null,"pink",null,null,null],"size":[1,3],"anchor":"ml"},{"pos":[1,0],"mini":[null,null,null,"triangle",null,null,null,"triangle",null],"size":[2,2],"anchor":"bl"},{"pos":[1,1],"mini":[null,null,"brown",null,null,"triangle",null,null,null],"size":[2,1],"anchor":"tr"},{"pos":[1,2],"mini":["square",null,null,null,"square",null,null,null,null],"size":[2,2],"anchor":"tl"}],"solucion":["pink:square","pink:circle","brown:circle","brown:triangle","amber:square","pink:triangle","amber:circle","amber:triangle","brown:square"]},{"n":38,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,null,"circle",null,"circle",null,null,null,"circle"]},{"pos":[0,1],"mini":[null,"brown",null,"pink",null,null,null,null,null],"size":[3,2],"anchor":"tl"},{"pos":[0,2],"mini":[null,null,null,null,"pink",null,null,"pink",null],"size":[2,3],"anchor":"bc"},{"pos":[1,0],"mini":[null,null,null,null,null,"amber",null,null,"brown"],"size":[2,3],"anchor":"bc"},{"pos":[1,1],"mini":[null,null,null,"triangle",null,null,"triangle",null,null],"size":[2,3],"anchor":"bc"},{"pos":[1,2],"mini":["square",null,null,null,null,null,"brown",null,null],"size":[3,2],"anchor":"tl"}],"solucion":["amber:square","brown:square","amber:circle","pink:triangle","pink:circle","amber:triangle","brown:triangle","pink:square","brown:circle"]},{"n":39,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,"brown:circle",null,null,null,null,null,"circle",null],"size":[3,1],"anchor":"mc"},{"pos":[0,1],"mini":["pink",null,null,null,null,null,"pink",null,null],"size":[3,1],"anchor":"tl"},{"pos":[0,2],"mini":[null,null,"amber",null,null,"amber",null,null,"amber"],"size":[3,1],"anchor":"mr"},{"pos":[1,0],"mini":[null,null,null,"triangle",null,"square",null,null,null],"size":[1,3],"anchor":"ml"},{"pos":[1,1],"mini":["square",null,null,null,null,null,null,null,null],"size":[1,3],"anchor":"tl"},{"pos":[1,2],"mini":[null,null,null,null,null,null,"triangle","pink","triangle"],"size":[1,3],"anchor":"bl"}],"solucion":["pink:square","brown:circle","amber:circle","brown:triangle","brown:square","amber:square","pink:triangle","pink:circle","amber:triangle"]},{"n":40,"nivel":"expert","bloques":[{"pos":[0,0],"mini":[null,"triangle",null,null,null,null,null,null,null],"size":[3,1],"anchor":"mc"},{"pos":[0,1],"mini":["brown","pink","brown",null,null,null,null,null,null],"size":[1,3],"anchor":"tl"},{"pos":[0,2],"mini":["circle",null,null,null,null,null,"amber",null,null],"size":[3,1],"anchor":"tl"},{"pos":[1,0],"mini":[null,null,"square",null,null,"circle",null,null,null],"size":[3,1],"anchor":"mr"},{"pos":[1,1],"mini":[null,null,null,null,"amber","pink",null,null,null],"size":[1,3],"anchor":"ml"},{"pos":[1,2],"mini":[null,null,null,null,"triangle",null,null,"pink",null],"size":[3,1],"anchor":"mc"},{"pos":[2,1],"mini":[null,null,null,null,null,null,"square","square","brown"],"size":[1,3],"anchor":"bl"}],"solucion":["brown:circle","pink:triangle","brown:square","amber:circle","amber:triangle","pink:circle","amber:square","pink:square","brown:triangle"]}]</script>
+<script>
+"use strict";
+var DATOS = JSON.parse(document.getElementById("datos").textContent);
+var COLORES = ["brown","pink","amber"];
+var FORMAS = ["circle","square","triangle"];
+var PIEZAS = [];
+COLORES.forEach(function(c){ FORMAS.forEach(function(f){ PIEZAS.push(c+":"+f); }); });
+var HEX = {brown:"#6b2222",pink:"#e26189",amber:"#d69a3c"};
+var HEX_L = {brown:"#a8624e",pink:"#f4abc4",amber:"#efc882"};
+var NOMBRE_C = {brown:"marrón",pink:"rosa",amber:"ámbar"};
+var NOMBRE_F = {circle:"círculo",square:"cuadrado",triangle:"triángulo"};
+var NIVEL_ES = {beginner:"principiante",intermediate:"intermedio",advanced:"avanzado",expert:"experto"};
+var FILA_ANCLA = {t:0, m:1, b:2};
+var COL_ANCLA = {l:0, c:1, r:2};
+var LS = "chocolatefix.v1";
+
+var n = 1, reto = null, tablero = [], seleccion = null, resueltos = [];
+var texto = true, ultimoToca = {i:-1, t:0};
+
+function parte(token){
+  if (!token) return [null, null];
+  var p = token.split(":");
+  if (p.length > 1) return [p[0], p[1]];
+  return COLORES.indexOf(token) >= 0 ? [token, null] : [null, token];
+}
+
+function guardar(){
+  var s = { reto:n, resueltos:resueltos, texto:texto, tableros:{} };
+  try {
+    var viejo = JSON.parse(localStorage.getItem(LS) || "{}");
+    if (viejo.tableros) s.tableros = viejo.tableros;
+    s.tableros[n] = tablero.slice();
+    localStorage.setItem(LS, JSON.stringify(s));
+  } catch(e){}
+}
+function recuperar(){
+  try {
+    var s = JSON.parse(localStorage.getItem(LS) || "{}");
+    if (s.resueltos) resueltos = s.resueltos;
+    if (s.reto) n = s.reto;
+    if (typeof s.texto === "boolean") texto = s.texto;
+    return s.tableros || {};
+  } catch(e){ return {}; }
+}
+
+/* ---------- svg ---------- */
+function formaSVG(forma, color, grosor, redondeado){
+  var g = '<g fill="none" stroke="'+color+'" stroke-width="'+grosor+'" stroke-linejoin="round" stroke-linecap="round">';
+  if (forma === "circle") g += '<circle cx="50" cy="50" r="34"/>';
+  else if (forma === "square") g += '<rect x="16" y="16" width="68" height="68" rx="9"/>';
+  else g += '<path d="M50 15 L85 81 L15 81 Z"/>';
+  return g + "</g>";
+}
+function anillos(forma, color, grosor){
+  var escala = [1, 0.62, 0.3];
+  var s = "";
+  for (var i=0;i<escala.length;i++){
+    s += '<g transform="translate(50 50) scale('+escala[i]+') translate(-50 -50)">'+formaSVG(forma,color,grosor)+"</g>";
+  }
+  return s;
+}
+function svgPieza(pieza){
+  var p = parte(pieza);
+  var c = p[0], f = p[1];
+  var s = '<svg viewBox="0 0 100 100" role="img" aria-label="'+pieza+'">';
+  s += '<rect x="2" y="2" width="96" height="96" rx="18" fill="'+HEX[c]+'"/>';
+  s += anillos(f, HEX_L[c], 7);
+  return s + "</svg>";
+}
+function svgPista(c, f){
+  var s = '<svg viewBox="0 0 100 100">';
+  if (c) s += '<rect x="4" y="4" width="92" height="92" rx="10" fill="'+HEX[c]+'"/>';
+  if (f) s += formaSVG(f, c ? HEX_L[c] : "#8d8d8d", c ? 9 : 11);
+  return s + "</svg>";
+}
+
+/* ---------- pistas ---------- */
+function pistasDe(r){
+  var v = [];
+  for (var i=0;i<9;i++) v.push({color:null, forma:null});
+  r.bloques.forEach(function(b){
+    for (var i=0;i<9;i++){
+      if (!b.mini[i]) continue;
+      var p = parte(b.mini[i]);
+      if (p[0]) v[i].color = p[0];
+      if (p[1]) v[i].forma = p[1];
+    }
+  });
+  return v;
+}
+function describirPistas(v){
+  var trozos = [];
+  for (var i=0;i<9;i++){
+    if (!v[i].color && !v[i].forma) continue;
+    var r = Math.floor(i/3)+1, c = i%3+1;
+    var q = [];
+    if (v[i].color) q.push("color "+NOMBRE_C[v[i].color]);
+    if (v[i].forma) q.push("forma "+NOMBRE_F[v[i].forma]);
+    trozos.push("fila "+r+", columna "+c+": "+q.join(" y "));
+  }
+  return trozos;
+}
+
+/* ---------- render ---------- */
+function renderTablero(marcas){
+  var cont = document.getElementById("tablero");
+  cont.innerHTML = "";
+  for (var i=0;i<9;i++){
+    var d = document.createElement("div");
+    d.className = "celda";
+    d.dataset.i = i;
+    if (tablero[i]) d.innerHTML = svgPieza(tablero[i]);
+    if (marcas && marcas[i]) d.classList.add(marcas[i]);
+    if (seleccion && marcas && marcas.sugerir) d.classList.add("sugerida");
+    d.addEventListener("click", function(){ pulsarCelda(+this.dataset.i); });
+    d.addEventListener("dragover", function(e){ e.preventDefault(); });
+    d.addEventListener("drop", function(e){
+      e.preventDefault();
+      var i = +this.dataset.i, t = e.dataTransfer.getData("text/plain");
+      if (t) colocarEn(i, t);
+    });
+    cont.appendChild(d);
+  }
+}
+function renderBandeja(){
+  var cont = document.getElementById("bandeja");
+  cont.innerHTML = "";
+  var enMano = seleccion && seleccion.origen === "tablero" ? seleccion.pieza : null;
+  var enTablero = {};
+  tablero.forEach(function(p){ if (p) enTablero[p] = 1; });
+  PIEZAS.forEach(function(p){
+    var d = document.createElement("div");
+    if (enTablero[p] && p !== enMano){
+      d.className = "ficha vacia";
+      cont.appendChild(d);
+      return;
+    }
+    d.className = "ficha";
+    d.dataset.p = p;
+    d.innerHTML = svgPieza(p);
+    d.draggable = true;
+    if (seleccion && seleccion.pieza === p){
+      d.classList.add("elegida");
+      d.title = "Toca una casilla para colocarlo";
+    }
+    d.addEventListener("click", function(){ pulsarFicha(this.dataset.p); });
+    d.addEventListener("dragstart", function(e){ e.dataTransfer.setData("text/plain", this.dataset.p); seleccion = null; });
+    cont.appendChild(d);
+  });
+}
+function renderHojapistas(contenedor, r){
+  contenedor.innerHTML = "";
+  r.bloques.slice().sort(function(a,b){
+    return (a.pos[0]-b.pos[0]) || (a.pos[1]-b.pos[1]);
+  }).forEach(function(b){
+    var filas = b.size ? b.size[0] : 3, cols = b.size ? b.size[1] : 3;
+    var ini = b.anchor ? Math.min(FILA_ANCLA[b.anchor.charAt(0)], 3 - filas) : 0;
+    var inj = b.anchor ? Math.min(COL_ANCLA[b.anchor.charAt(1)], 3 - cols) : 0;
+    var g = document.createElement("div");
+    g.className = "mini";
+    g.style.gridTemplateColumns = "repeat("+cols+",auto)";
+    g.style.gridRow = (b.pos[0]+1)+"";
+    g.style.gridColumn = (b.pos[1]+1)+"";
+    for (var r=0;r<filas;r++){
+      for (var c=0;c<cols;c++){
+        var p = parte(b.mini[(ini+r)*3 + (inj+c)]);
+        var d = document.createElement("div");
+        d.className = "c";
+        if (p[0] || p[1]) d.innerHTML = svgPista(p[0], p[1]);
+        g.appendChild(d);
+      }
+    }
+    contenedor.appendChild(g);
+  });
+}
+function renderTodo(marcas){
+  renderTablero(marcas);
+  renderBandeja();
+  document.getElementById("chip").textContent = "Reto " + n;
+  var el = document.getElementById("nivel");
+  el.textContent = NIVEL_ES[reto.nivel];
+  el.className = "nivel " + reto.nivel;
+  document.getElementById("lista").value = n;
+}
+
+/* ---------- interacción ---------- */
+function pulsarFicha(pieza){
+  seleccion = (seleccion && seleccion.pieza === pieza && seleccion.origen === "bandeja")
+    ? null : {origen:"bandeja", pieza:pieza};
+  mensaje("");
+  renderTodo();
+}
+function pulsarCelda(i){
+  var ahora = Date.now();
+  var doble = ultimoToca.i === i && ahora - ultimoToca.t < 500;
+  ultimoToca = {i:i, t:ahora};
+  if (doble && tablero[i]){ quitarFicha(i); return; }
+  if (seleccion){
+    colocarEn(i, seleccion.pieza);
+    return;
+  }
+  if (tablero[i]){
+    seleccion = {origen:"tablero", pieza:tablero[i], i:i};
+    mensaje("Bombón cogido: tócalo en otra casilla para moverlo; tócalo dos veces para devolverlo.", "av");
+    renderTodo();
+  }
+}
+function quitarFicha(i){
+  tablero[i] = null;
+  seleccion = null;
+  ultimoToca = {i:-1, t:0};
+  mensaje("Bombón devuelto a las fichas.", "av");
+  renderTodo();
+  guardar();
+}
+function colocarEn(i, pieza){
+  var desde = -1;
+  if (seleccion && seleccion.origen === "tablero") desde = seleccion.i;
+  var antes = tablero[i];
+  tablero[i] = pieza;
+  if (desde >= 0) tablero[desde] = antes;
+  seleccion = null;
+  mensaje("");
+  renderTodo();
+}
+function comprobar(){
+  var libres = 0, i;
+  for (i=0;i<9;i++) if (!tablero[i]) libres++;
+  if (libres){ mensaje("Faltan "+libres+" bombón"+(libres>1?"es":"")+" por colocar en el tablero.", "ko"); return; }
+  var v = pistasDe(reto), marcas = [], mal = 0;
+  for (i=0;i<9;i++){
+    var p = parte(tablero[i]);
+    if ((v[i].color && v[i].color !== p[0]) || (v[i].forma && v[i].forma !== p[1])){ marcas[i] = "malo"; mal++; }
+  }
+  if (mal){
+    for (i=0;i<9;i++) if (!marcas[i]) marcas[i] = "acierto";
+    mensaje(mal+" casilla"+(mal>1?"s":"")+" no cumple la pista (marcadas en amarillo).", "ko");
+    renderTodo(marcas);
+    return;
+  }
+  if (resueltos.indexOf(n) < 0) resueltos.push(n);
+  guardar();
+  renderTodo(marcas.map(function(){ return "acierto"; }));
+  mensaje("¡Correcto! Todas las casillas cumplen las pistas.", "ok");
+}
+function mensaje(texto, clase){
+  var m = document.getElementById("mensaje");
+  m.textContent = texto;
+  m.className = "mensaje" + (clase ? " "+clase : "");
+}
+
+/* ---------- navegación ---------- */
+function irA(nuevo, tableros){
+  n = Math.min(40, Math.max(1, nuevo));
+  reto = DATOS.filter(function(r){ return r.n === n; })[0];
+  var guardado = tableros && tableros[n];
+  tablero = guardado && guardado.length === 9 ? guardado.slice() : Array(9).fill(null);
+  seleccion = null;
+  ultimoToca = {i:-1, t:0};
+  renderHojapistas(document.getElementById("cuadrantes"), reto);
+  renderTodo();
+  var trozos = describirPistas(pistasDe(reto));
+  document.getElementById("leyenda").innerHTML =
+    "<b>Cómo se lee:</b> cada recuadro pequeño es una ventana del tablero. La casilla de arriba a la "+
+    "izquierda del recuadro corresponde a la casilla del tablero que ocupa esa misma posición. "+
+    "Un recuadro de color fija el <b>color</b> de esa casilla; una silueta fija la <b>forma</b>; "+
+    "los dos juntos fijan ambos. Las casillas en blanco no dan información.";
+  document.getElementById("pistas").innerHTML =
+    "<b>Pistas de este reto:</b><br>" + trozos.map(function(t){ return "&bull; "+t; }).join("<br>");
+  pintarTexto();
+  mensaje("");
+  guardar();
+}
+function pintarTexto(){
+  document.getElementById("pistas").style.display = texto ? "" : "none";
+  document.getElementById("texto").setAttribute("aria-pressed", texto ? "true" : "false");
+}
+
+/* ---------- ficha imprimible ---------- */
+function ficha(){
+  var f = document.getElementById("ficha");
+  f.innerHTML =
+    "<h3>Chocolate Fix &mdash; reto "+n+" ("+NIVEL_ES[reto.nivel]+")</h3>"+
+    "<div class='hojapistas'><h2>Pistas</h2><div class='cuadrantes' id='fichaPistas'></div></div>"+
+    "<div class='tablero' id='fichaTablero'></div>"+
+    "<p>Coloca los 9 bombones (3 colores &times; 3 formas) de modo que todas las casillas cumplan las pistas.</p>";
+  renderHojapistas(document.getElementById("fichaPistas"), reto);
+  var t = document.getElementById("fichaTablero");
+  for (var i=0;i<9;i++){
+    var d = document.createElement("div");
+    d.className = "celda";
+    t.appendChild(d);
+  }
+  window.print();
+}
+
+/* ---------- arranque ---------- */
+(function(){
+  var tableros = recuperar();
+  var sel = document.getElementById("lista");
+  DATOS.forEach(function(r){
+    var o = document.createElement("option");
+    o.value = r.n;
+    o.textContent = r.n + " · " + NIVEL_ES[r.nivel];
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", function(){ irA(+this.value, tableros); });
+  document.getElementById("anterior").addEventListener("click", function(){ irA(n-1, tableros); });
+  document.getElementById("siguiente").addEventListener("click", function(){ irA(n+1, tableros); });
+  document.getElementById("comprobar").addEventListener("click", comprobar);
+  document.getElementById("texto").addEventListener("click", function(){
+    texto = !texto; pintarTexto(); guardar();
+  });
+  document.getElementById("reiniciar").addEventListener("click", function(){
+    tablero = Array(9).fill(null); seleccion = null; ultimoToca = {i:-1, t:0}; renderTodo(); mensaje(""); guardar();
+  });
+  document.getElementById("solucion").addEventListener("click", function(){
+    tablero = reto.solucion.slice(); seleccion = null; ultimoToca = {i:-1, t:0}; renderTodo();
+    mensaje("Solución del librito. Prueba a deducirla tú: mira primero las pistas.", "av");
+  });
+  document.getElementById("imprimir").addEventListener("click", ficha);
+  irA(n, tableros);
+})();
+</script>
+</body>
+</html>
