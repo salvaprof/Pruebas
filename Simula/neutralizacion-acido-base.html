@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Simulación interactiva de una valoración ácido-base: neutralización de un ácido con NaOH, curva de valoración, indicador y punto de equivalencia. Autocontenida, con modo oscuro y accesible.">
+<title>Valoración ácido-base · Simulación interactiva</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fs: 1rem;
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --panel-2: #e9edf1;
+    --fg: #16181c;
+    --muted: #5b6470;
+    --line: #6f7a88;
+    --accent: #1a6fb0;
+    --accent-2: #b4531a;
+    --ok: #17663a;
+    --warn: #8a5a00;
+    --scene-bg: #fbfcfd;
+    --grid: #7d8896;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-theme="dark"]) {
+      --bg: #101317;
+      --panel: #181d23;
+      --panel-2: #222831;
+      --fg: #e9edf2;
+      --muted: #9aa5b1;
+      --line: #7d8896;
+      --accent: #6db3e8;
+      --accent-2: #f0a05a;
+      --ok: #6fd39a;
+      --warn: #e8c07a;
+      --scene-bg: #14181e;
+      --grid: #6b7684;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #101317;
+    --panel: #181d23;
+    --panel-2: #222831;
+    --fg: #e9edf2;
+    --muted: #9aa5b1;
+    --line: #7d8896;
+    --accent: #6db3e8;
+    --accent-2: #f0a05a;
+    --ok: #6fd39a;
+    --warn: #e8c07a;
+    --scene-bg: #14181e;
+    --grid: #6b7684;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  [data-contraste="alto"] {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f0f0f0;
+    --fg: #000000;
+    --muted: #1f1f1f;
+    --line: #000000;
+    --accent: #00499b;
+    --accent-2: #8a2b00;
+    --ok: #005c2e;
+    --warn: #6b3f00;
+    --scene-bg: #ffffff;
+    --grid: #6f7a88;
+    --shadow: none;
+  }
+  [data-theme="dark"][data-contraste="alto"] {
+    --bg: #000000;
+    --panel: #05070a;
+    --panel-2: #12161c;
+    --fg: #ffffff;
+    --muted: #d5dde5;
+    --line: #ffffff;
+    --accent: #a9d6ff;
+    --accent-2: #ffc08a;
+    --ok: #92e5b6;
+    --warn: #ffdc9a;
+    --scene-bg: #000000;
+    --grid: #8b949e;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: var(--fs); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  main { display: block; }
+  header, main, footer { max-width: 1200px; margin: 0 auto; padding: 1rem 1.25rem; }
+  h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 0.6rem; }
+  h3 { font-size: 1rem; margin: 0.8rem 0 0.35rem; }
+  p, li, output, label, button, input, select, td, th, caption { font-size: 1rem; }
+  .subtitulo { color: var(--muted); margin: 0 0 1rem; }
+
+  .barra { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+  button, input, select { min-height: 44px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+  button { padding: 0.5rem 0.9rem; cursor: pointer; box-shadow: var(--shadow); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.95fr); gap: 1rem; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem; box-shadow: var(--shadow); }
+  .columna { display: grid; gap: 1rem; }
+
+  figure { margin: 0; }
+  svg.escena, svg.grafica { width: 100%; height: auto; display: block; background: var(--scene-bg); border: 1px solid var(--line); border-radius: 10px; }
+  figcaption { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
+
+  .soporte { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.5; }
+  .cristal { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linecap: round; }
+  .cristal-fino { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+  .llave { fill: var(--accent-2); stroke: var(--fg); stroke-width: 1.2; }
+  .liquido-bureta { fill: #4a86b8; }
+  .vaso-liquido { stroke: none; }
+  .vaso-superficie { fill: none; stroke-width: 1.5; }
+  .gota { fill: #4a86b8; }
+  .tick { stroke: var(--muted); stroke-width: 1.2; }
+  .tick-mayor { stroke: var(--fg); stroke-width: 1.6; }
+  .etiqueta-escena { font-size: 0.875rem; fill: var(--fg); }
+  .etiqueta-escena-claro { font-size: 0.8125rem; fill: var(--muted); }
+  .rejilla { stroke: var(--grid); stroke-width: 1; }
+  .rejilla-neutra { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 6 5; }
+  .curva { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; }
+  .linea-equivalencia { stroke: var(--accent-2); stroke-width: 1.8; stroke-dasharray: 7 5; }
+  .punto-actual { fill: var(--accent-2); stroke: var(--panel); stroke-width: 2; }
+  .eje { stroke: var(--fg); stroke-width: 1.5; }
+  .rotulo { font-size: 0.8125rem; fill: var(--muted); }
+  .rotulo-claro { font-size: 0.8125rem; fill: var(--fg); }
+  .marcador-ph { fill: var(--accent-2); stroke: var(--panel); stroke-width: 1.5; }
+
+  [data-contraste="alto"] .soporte { stroke: var(--fg); }
+  [data-contraste="alto"] .tick { stroke: var(--fg); }
+  [data-contraste="alto"] .cristal { stroke-width: 3.2; }
+  [data-contraste="alto"] .cristal-fino { stroke-width: 2.2; }
+  [data-contraste="alto"] .rejilla { stroke-width: 1.6; }
+  [data-contraste="alto"] .curva { stroke-width: 4; }
+  [data-contraste="alto"] .linea-equivalencia { stroke-width: 2.6; }
+  [data-contraste="alto"] .vaso-liquido { stroke: var(--fg); stroke-width: 1.8; }
+  [data-contraste="alto"] .vaso-superficie { stroke-width: 2.4; }
+  [data-contraste="alto"] .punto-actual { stroke: var(--fg); stroke-width: 2.5; }
+
+  .control { margin-bottom: 0.9rem; }
+  .control label { display: block; font-weight: 600; margin-bottom: 0.2rem; }
+  .control .fila { display: flex; align-items: center; gap: 0.6rem; }
+  input[type="range"] { flex: 1; padding: 0; accent-color: var(--accent); }
+  select { padding: 0.4rem 0.6rem; width: 100%; }
+  output.valor { min-width: 6.2rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; }
+  .unidad { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+  .ayuda { color: var(--muted); font-size: 0.92rem; margin: 0.15rem 0 0; }
+
+  .botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+  #estado { margin: 0.8rem 0 0; padding: 0.55rem 0.75rem; border-left: 4px solid var(--accent); background: var(--panel-2); border-radius: 6px; }
+
+  dl.lecturas { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin: 0.6rem 0 0; }
+  dl.lecturas > div { background: var(--panel-2); border-radius: 8px; padding: 0.5rem 0.7rem; }
+  dl.lecturas dt { font-size: 0.9rem; color: var(--muted); }
+  dl.lecturas dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  dl.lecturas output { font-size: 1.05rem; }
+  @media (max-width: 480px) { dl.lecturas { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 0.6rem; }
+  caption { text-align: left; color: var(--muted); }
+  th, td { border: 1px solid var(--line); padding: 0.4rem 0.55rem; text-align: right; font-variant-numeric: tabular-nums; }
+  th { background: var(--panel-2); }
+  .muestra-color { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 0.35rem; }
+
+  ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+  li { margin-bottom: 0.35rem; }
+  .nota { color: var(--muted); font-size: 0.95rem; }
+  kbd { background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0.1rem 0.4rem; font-family: inherit; }
+  footer { color: var(--muted); font-size: 0.95rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+  [data-movimiento="reducido"] * { transition: none !important; animation: none !important; }
+</style>
+</head>
+<body data-sim-id="neutralizacion-acido-base" data-materia="Química" data-nivel="Ambos" data-render="svg" data-curso="3º-4º ESO y 1º Bachillerato">
+  <header>
+    <h1>Valoración ácido-base: neutralización con NaOH</h1>
+    <p class="subtitulo">Añade sosa a un ácido y observa cómo cambia el pH, el color del indicador y la forma de la curva de valoración.</p>
+    <div class="barra">
+      <button type="button" id="btn-tema" aria-pressed="false" data-action="tema">Modo oscuro</button>
+      <button type="button" id="btn-contraste" aria-pressed="false" data-action="contraste">Contraste alto</button>
+      <button type="button" id="btn-texto-menos" data-action="texto-menos" aria-label="Reducir el tamaño de la letra" title="Reducir el tamaño de letra">A−</button>
+      <button type="button" id="btn-texto-mas" data-action="texto-mas" aria-label="Aumentar el tamaño de la letra" title="Aumentar el tamaño de letra">A+</button>
+      <button type="button" id="btn-movimiento" aria-pressed="false" data-action="movimiento">Menos movimiento</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="columna">
+      <figure class="panel">
+        <svg id="escena" class="escena" viewBox="0 0 560 470" role="img" aria-describedby="escena-resumen" aria-label="Bureta con disolución de hidróxido de sodio sobre un vaso de precipitados con ácido. La disolución del vaso es incolora y el pH es 1,00.">
+          <defs>
+            <linearGradient id="gradiente-ph" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stop-color="#c0392b"></stop>
+              <stop offset="0.21" stop-color="#e07b39"></stop>
+              <stop offset="0.36" stop-color="#e0b030"></stop>
+              <stop offset="0.5" stop-color="#4caf50"></stop>
+              <stop offset="0.68" stop-color="#2f86c9"></stop>
+              <stop offset="0.86" stop-color="#3f51b5"></stop>
+              <stop offset="1" stop-color="#6a1b9a"></stop>
+            </linearGradient>
+            <clipPath id="recorte-bureta">
+              <rect x="252" y="32" width="38" height="212"></rect>
+            </clipPath>
+            <clipPath id="recorte-vaso">
+              <path d="M217 302 L217 418 Q217 428 227 428 L313 428 Q323 428 323 418 L323 302 Z"></path>
+            </clipPath>
+          </defs>
+
+          <!-- escala de pH -->
+          <g>
+            <rect x="58" y="40" width="30" height="390" rx="6" fill="url(#gradiente-ph)" stroke="var(--line)" stroke-width="1.5"></rect>
+            <text class="etiqueta-escena" x="52" y="46" text-anchor="end">14</text>
+            <text class="etiqueta-escena" x="52" y="239" text-anchor="end">7</text>
+            <text class="etiqueta-escena" x="52" y="434" text-anchor="end">0</text>
+            <text class="etiqueta-escena-claro" x="73" y="26" text-anchor="middle">pH</text>
+            <polygon id="marcador-ph" class="marcador-ph" points="92,235 106,227 106,243"></polygon>
+            <text id="marcador-ph-valor" class="rotulo-claro" x="110" y="232">7,00</text>
+            <line class="rejilla" x1="58" x2="88" y1="235" y2="235"></line>
+          </g>
+
+          <!-- soporte -->
+          <g>
+            <rect class="soporte" x="150" y="432" width="230" height="14" rx="3"></rect>
+            <rect class="soporte" x="176" y="40" width="10" height="392" rx="3"></rect>
+            <rect class="soporte" x="186" y="52" width="72" height="10" rx="3"></rect>
+            <rect class="soporte" x="186" y="206" width="72" height="10" rx="3"></rect>
+          </g>
+
+          <!-- bureta -->
+          <g>
+            <rect id="bureta-liquido" class="liquido-bureta" x="252" y="36" width="38" height="208" clip-path="url(#recorte-bureta)"></rect>
+            <path class="cristal" d="M250 30 L250 244 M292 30 L292 244"></path>
+            <rect class="llave" x="250" y="244" width="42" height="14" rx="3"></rect>
+            <path class="cristal" d="M263 258 L268 272 L274 272 L279 258"></path>
+            <g>
+              <line class="tick" x1="292" x2="297" y1="53.3" y2="53.3"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="36" y2="36"></line>
+              <line class="tick" x1="292" x2="297" y1="88" y2="88"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="70.7" y2="70.7"></line>
+              <line class="tick" x1="292" x2="297" y1="122.7" y2="122.7"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="105.3" y2="105.3"></line>
+              <line class="tick" x1="292" x2="297" y1="157.3" y2="157.3"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="140" y2="140"></line>
+              <line class="tick" x1="292" x2="297" y1="192" y2="192"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="174.7" y2="174.7"></line>
+              <line class="tick" x1="292" x2="297" y1="226.7" y2="226.7"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="209.3" y2="209.3"></line>
+              <line class="tick-mayor" x1="292" x2="302" y1="244" y2="244"></line>
+            </g>
+            <g>
+              <text class="etiqueta-escena-claro" x="305" y="40">0 mL</text>
+              <text class="etiqueta-escena-claro" x="305" y="74.7">10</text>
+              <text class="etiqueta-escena-claro" x="305" y="109.3">20</text>
+              <text class="etiqueta-escena-claro" x="305" y="144">30</text>
+              <text class="etiqueta-escena-claro" x="305" y="178.7">40</text>
+              <text class="etiqueta-escena-claro" x="305" y="213.3">50</text>
+              <text class="etiqueta-escena-claro" x="305" y="248">60</text>
+            </g>
+            <text id="rotulo-bureta" class="etiqueta-escena" x="300" y="24">Bureta · NaOH 0,100 M</text>
+          </g>
+
+          <!-- gotas -->
+          <g id="gotas" clip-path="url(#recorte-vaso)">
+            <circle id="gota-1" class="gota" cx="271" cy="300" r="4" opacity="0"></circle>
+            <circle id="gota-2" class="gota" cx="266" cy="300" r="3.2" opacity="0"></circle>
+            <circle id="gota-3" class="gota" cx="276" cy="300" r="3.6" opacity="0"></circle>
+          </g>
+
+          <!-- vaso de precipitados -->
+          <g>
+            <rect id="vaso-liquido" class="vaso-liquido" x="217" y="360" width="106" height="68" clip-path="url(#recorte-vaso)" fill="#bcd7ea"></rect>
+            <ellipse id="vaso-superficie" class="vaso-superficie" cx="270" cy="360" rx="53" ry="6" stroke="var(--muted)"></ellipse>
+            <path class="cristal" d="M215 300 L215 418 Q215 430 227 430 L313 430 Q325 430 325 418 L325 300"></path>
+            <path class="cristal-fino" d="M215 300 L205 292"></path>
+            <text id="rotulo-vaso" class="etiqueta-escena" x="340" y="392">Vaso · HCl 25,0 mL</text>
+            <text id="rotulo-vaso-2" class="etiqueta-escena-claro" x="340" y="410">Volumen total 25,0 mL</text>
+          </g>
+
+          <!-- estado de la valoración -->
+          <g>
+            <text id="rotulo-fase" class="rotulo-claro" x="340" y="316">Queda ácido sin neutralizar.</text>
+            <text id="rotulo-fase-2" class="rotulo" x="340" y="334">Zona ácida, pH bajo.</text>
+            <text id="rotulo-volumen" class="etiqueta-escena" x="340" y="352">Añadidos: 0,0 mL</text>
+          </g>
+        </svg>
+        <figcaption id="escena-resumen">La bureta vacía la disolución de NaOH sobre el vaso. El líquido del vaso cambia de color según el pH; la barra de la izquierda indica el valor de pH sobre una escala universal de 0 a 14.</figcaption>
+      </figure>
+
+      <figure class="panel">
+        <svg id="grafica" class="grafica" viewBox="0 0 560 250" role="img" aria-describedby="grafica-nota" aria-label="Curva de valoración. El pH empieza en 1,00 y sube poco a poco hasta el punto de equivalencia.">
+          <g>
+            <line class="rejilla" x1="45" x2="545" y1="200" y2="200"></line>
+            <line class="rejilla" x1="45" x2="545" y1="174.3" y2="174.3"></line>
+            <line class="rejilla" x1="45" x2="545" y1="148.6" y2="148.6"></line>
+            <line class="rejilla" x1="45" x2="545" y1="122.9" y2="122.9"></line>
+            <line class="rejilla" x1="45" x2="545" y1="97.1" y2="97.1"></line>
+            <line class="rejilla" x1="45" x2="545" y1="71.4" y2="71.4"></line>
+            <line class="rejilla" x1="45" x2="545" y1="45.7" y2="45.7"></line>
+            <line class="rejilla" x1="45" x2="545" y1="20" y2="20"></line>
+            <text class="rotulo" x="37" y="204" text-anchor="end">0</text>
+            <text class="rotulo" x="37" y="178.3" text-anchor="end">2</text>
+            <text class="rotulo" x="37" y="152.6" text-anchor="end">4</text>
+            <text class="rotulo" x="37" y="126.9" text-anchor="end">6</text>
+            <text class="rotulo" x="37" y="101.1" text-anchor="end">8</text>
+            <text class="rotulo" x="37" y="75.4" text-anchor="end">10</text>
+            <text class="rotulo" x="37" y="49.7" text-anchor="end">12</text>
+            <text class="rotulo" x="37" y="24" text-anchor="end">14</text>
+          </g>
+          <line class="rejilla-neutra" x1="45" x2="545" y1="110" y2="110"></line>
+          <text class="rotulo" x="545" y="104" text-anchor="end">pH 7 (neutro)</text>
+          <line class="eje" x1="45" x2="545" y1="200" y2="200"></line>
+          <line class="eje" x1="45" x2="45" y1="20" y2="200"></line>
+          <g>
+            <text class="rotulo" x="45" y="218" text-anchor="middle">0</text>
+            <text class="rotulo" x="128.3" y="218" text-anchor="middle">10</text>
+            <text class="rotulo" x="211.7" y="218" text-anchor="middle">20</text>
+            <text class="rotulo" x="295" y="218" text-anchor="middle">30</text>
+            <text class="rotulo" x="378.3" y="218" text-anchor="middle">40</text>
+            <text class="rotulo" x="461.7" y="218" text-anchor="middle">50</text>
+            <text class="rotulo" x="545" y="218" text-anchor="middle">60</text>
+          </g>
+          <text class="rotulo" x="295" y="238" text-anchor="middle">Volumen de NaOH añadido (mL)</text>
+          <text class="rotulo" x="16" y="112" text-anchor="middle" transform="rotate(-90 16 112)">pH</text>
+          <line id="linea-equivalencia" class="linea-equivalencia" x1="45" x2="45" y1="20" y2="200"></line>
+          <text id="rotulo-equivalencia" class="rotulo-claro" x="45" y="16" text-anchor="middle">V eq</text>
+          <polyline id="curva" class="curva" points=""></polyline>
+          <circle id="punto-actual" class="punto-actual" cx="45" cy="186" r="7"></circle>
+          <text id="rotulo-punto" class="rotulo-claro" x="52" y="180">0,0 mL · pH 1,00</text>
+        </svg>
+        <figcaption>Curva de valoración: pH frente al volumen de base añadido. El punto marcado es tu situación actual y la línea discontinua marca el volumen de equivalencia.</figcaption>
+        <p id="grafica-nota" class="nota">Eje vertical: pH de 0 a 14. Eje horizontal: volumen de NaOH añadido de 0 a 60 mL. El botón «Ver datos» abre la tabla con estos mismos valores en forma de texto.</p>
+      </figure>
+    </section>
+
+    <section class="columna">
+      <section class="panel" aria-label="Controles de la valoración">
+        <h2>Condiciones de la valoración</h2>
+
+        <div class="control">
+          <label for="acido">Ácido del vaso</label>
+          <select id="acido">
+            <option value="0" selected>Ácido clorhídrico, HCl (ácido fuerte)</option>
+            <option value="0.000018">Ácido acético, CH₃COOH (ácido débil)</option>
+          </select>
+          <p class="ayuda">El valor que se guarda es la constante de acidez Ka: 0 para un ácido fuerte (se disocia del todo) y 1,8·10⁻⁵ mol/L para el acético.</p>
+        </div>
+
+        <div class="control">
+          <label for="concentracion-acido">Concentración del ácido</label>
+          <div class="fila">
+            <input type="range" id="concentracion-acido" min="0.01" max="1" step="0.01" value="0.1" aria-valuetext="0,10 mol/L">
+            <output class="valor" for="concentracion-acido" data-unidad="mol/L" id="val-concentracion-acido">0,10</output>
+            <span class="unidad">mol/L</span>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="volumen-acido">Volumen de ácido en el vaso</label>
+          <div class="fila">
+            <input type="range" id="volumen-acido" min="10" max="50" step="1" value="25" aria-valuetext="25 mL">
+            <output class="valor" for="volumen-acido" data-unidad="mL" id="val-volumen-acido">25</output>
+            <span class="unidad">mL</span>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="concentracion-base">Concentración de NaOH de la bureta</label>
+          <div class="fila">
+            <input type="range" id="concentracion-base" min="0.01" max="1" step="0.01" value="0.1" aria-valuetext="0,10 mol/L">
+            <output class="valor" for="concentracion-base" data-unidad="mol/L" id="val-concentracion-base">0,10</output>
+            <span class="unidad">mol/L</span>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="volumen-base">Volumen de NaOH añadido</label>
+          <div class="fila">
+            <input type="range" id="volumen-base" min="0" max="60" step="0.05" value="0" aria-valuetext="0,0 mL, pH 1,00">
+            <output class="valor" for="volumen-base" data-unidad="mL" id="val-volumen-base">0,0</output>
+            <span class="unidad">mL</span>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="indicador">Indicador</label>
+          <select id="indicador">
+            <option value="fenolftaleina" selected>Fenolftaleína (incoloro → rosa, pH 8,2–10,0)</option>
+            <option value="naranja-metilo">Naranja de metilo (rojo → amarillo, pH 3,1–4,4)</option>
+            <option value="azul-bromotimol">Azul de bromotimol (amarillo → azul, pH 6,0–7,6)</option>
+            <option value="ninguno">Sin indicador</option>
+          </select>
+          <p class="ayuda">Cada indicador cambia de color en su propio rango de pH, que no tiene por qué coincidir con el pH del punto de equivalencia.</p>
+        </div>
+
+        <div class="botones">
+          <button type="button" id="btn-valorar" aria-pressed="false">Iniciar valoración</button>
+          <button type="button" id="btn-paso">Añadir 0,5 mL</button>
+          <button type="button" id="btn-equivalencia">Ir al equivalencia</button>
+          <button type="button" id="btn-reiniciar">Reiniciar</button>
+        </div>
+        <div class="botones">
+          <button type="button" id="btn-datos" aria-pressed="false" aria-expanded="false" aria-controls="datos">Ver datos</button>
+          <button type="button" id="btn-copiar">Copiar datos</button>
+        </div>
+
+        <p id="estado" role="status" aria-live="polite">Vaso con 25 mL de HCl 0,10 M. Pulsa «Iniciar valoración» o «Añadir 0,5 mL».</p>
+      </section>
+
+      <section class="panel" aria-label="Lecturas de la simulación">
+        <h2>Lecturas</h2>
+        <dl class="lecturas">
+          <div><dt>pH</dt><dd><output data-observable="ph" data-unidad="" id="lect-ph">1,00</output></dd></div>
+          <div><dt>pOH</dt><dd><output data-observable="poh" data-unidad="" id="lect-poh">13,00</output></dd></div>
+          <div><dt>[H⁺]</dt><dd><output data-observable="h" data-unidad="mol/L" id="lect-h">1,0 × 10⁻¹</output><span class="unidad">mol/L</span></dd></div>
+          <div><dt>[OH⁻]</dt><dd><output data-observable="oh" data-unidad="mol/L" id="lect-oh">1,0 × 10⁻¹³</output><span class="unidad">mol/L</span></dd></div>
+          <div><dt>Volumen de equivalencia</dt><dd><output data-observable="volumen-equivalencia" data-unidad="mL" id="lect-veq">25,0</output><span class="unidad">mL</span></dd></div>
+          <div><dt>pH en el equivalencia</dt><dd><output data-observable="ph-equivalencia" data-unidad="" id="lect-pheq">7,00</output></dd></div>
+          <div><dt>Ácido inicial</dt><dd><output data-observable="moles-acido" data-unidad="mol" id="lect-nacido">0,0025</output><span class="unidad">mol</span></dd></div>
+          <div><dt>Base añadida</dt><dd><output data-observable="moles-base" data-unidad="mol" id="lect-nbase">0,0000</output><span class="unidad">mol</span></dd></div>
+          <div><dt>Exceso</dt><dd><output data-observable="exceso" data-unidad="mol" id="lect-exceso">0,0025 de ácido</output><span class="unidad">mol</span></dd></div>
+          <div><dt>Color del indicador</dt><dd><output data-observable="color" data-unidad="" id="lect-color">incoloro</output></dd></div>
+        </dl>
+        <div id="datos" hidden>
+          <table id="tabla-datos">
+            <caption>Últimos valores de la valoración (un punto cada 0,5 mL de base añadida).</caption>
+            <thead>
+              <tr>
+                <th scope="col">V añadido (mL)</th>
+                <th scope="col">pH</th>
+                <th scope="col">pOH</th>
+                <th scope="col">Color</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-cuerpo"></tbody>
+          </table>
+          <p id="aviso-copiar" class="nota"></p>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Qué observar y retos">
+        <h2>Qué observar</h2>
+        <ul>
+          <li>Con un ácido fuerte el pH apenas sube durante casi toda la valoración y se dispara en un salto vertical muy corto alrededor del equivalencia.</li>
+          <li>Con el ácido acético la subida es suave al principio (zona tampón), el salto es mucho más corto y el equivalencia cae en medio del salto.</li>
+          <li>El volumen de equivalencia solo depende de los moles: no cambia si cambias el indicador.</li>
+          <li>El color del indicador cambia donde toca su rango, no donde termina la neutralización: por eso hay que elegirlo bien.</li>
+        </ul>
+        <h2>Retos</h2>
+        <ul>
+          <li>Encuentra con el ratón el volumen exacto en el que la fenolftaleína se vuelve rosa y compáralo con el V eq que da la lectura.</li>
+          <li>Pon naranja de metilo con ácido acético: ¿el cambio de color aparece antes o después de neutralizar todo el ácido?</li>
+          <li>Duplica la concentración del ácido y del NaOH a la vez: ¿se mueve el volumen de equivalencia? ¿Y el pH del equivalencia?</li>
+          <li>Baja la concentración de NaOH a 0,01 M: el salto de la curva se vuelve más corto. Explica por qué.</li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-label="Supuestos del modelo">
+        <h2>Supuestos del modelo</h2>
+        <ul>
+          <li>Disolución ideal: usamos concentraciones en lugar de actividades y NaOH y HCl se consideran totalmente disociados.</li>
+          <li>El pH se calcula resolviendo el equilibrio de cada momento con el balance de carga y el producto iónico del agua Kw = 1,0·10⁻¹⁴ a 25 °C; no se usa la aproximación «moles que sobran / volumen».</li>
+          <li>Los volúmenes se suman sin contracción y la temperatura se mantiene en 25 °C.</li>
+          <li>El indicador es una molécula que no consume NaOH y su color se interpola linealmente entre sus dos formas dentro del rango de transición.</li>
+          <li>La bureta es de 60 mL y la valoración se detiene al vaciarla. La velocidad de caída de la gota es ilustrativa, no una medida de caudal.</li>
+          <li>Si los moles de ácido necesitan más de 60 mL de NaOH para neutralizarse, la equivalencia queda fuera de la bureta: la simulación lo avisa y no dibuja la línea de equivalencia.</li>
+        </ul>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <p>Atajos de teclado (se usan cuando no hay ningún campo, deslizador o botón enfocado): <kbd>Espacio</kbd> iniciar o pausar la valoración, <kbd>R</kbd> reiniciar, <kbd>A</kbd> añadir 0,5 mL, <kbd>E</kbd> ir al punto de equivalencia, <kbd>D</kbd> mostrar la tabla de datos, <kbd>T</kbd> cambiar a modo oscuro, <kbd>M</kbd> menos movimiento.</p>
+    <p class="nota">Modelo de equilibrio ácido-base con bisección numérica sobre el balance de carga. El color del líquido es orientativo: los rangos reales de los indicadores varían con la temperatura y la concentración.</p>
+  </footer>
+
+<script>
+(function () {
+  'use strict'
+
+  const root = document.documentElement
+  const esc = (id) => document.getElementById(id)
+  const KW = 1e-14
+  const CAPACIDAD_BURETA = 60
+
+  const INDICADORES = {
+    fenolftaleina: { nombre: 'Fenolftaleína', inf: 8.2, sup: 10.0, acido: '#cfd8e3', base: '#e0447e', nombreAcido: 'incoloro', nombreBase: 'rosa fucsia' },
+    'naranja-metilo': { nombre: 'Naranja de metilo', inf: 3.1, sup: 4.4, acido: '#d1495b', base: '#e8b32a', nombreAcido: 'rojo', nombreBase: 'amarillo' },
+    'azul-bromotimol': { nombre: 'Azul de bromotimol', inf: 6.0, sup: 7.6, acido: '#e0a92f', base: '#2f86c9', nombreAcido: 'amarillo', nombreBase: 'azul' },
+    ninguno: { nombre: 'Sin indicador', inf: null, sup: null, acido: '#bcd7ea', base: '#bcd7ea', nombreAcido: 'incoloro', nombreBase: 'incoloro' }
+  }
+
+  /* ---------------- utilidades ---------------- */
+  function leerPref(clave) {
+    try { return window.localStorage.getItem(clave) } catch (err) { return null }
+  }
+  function guardarPref(clave, valor) {
+    try { window.localStorage.setItem(clave, valor) } catch (err) { /* sin almacenamiento local */ }
+  }
+  function numero(v, def) {
+    const n = parseFloat(v)
+    return Number.isFinite(n) ? n : def
+  }
+  function fmt(n, d) {
+    if (!Number.isFinite(n)) return '—'
+    return n.toFixed(d).replace('.', ',')
+  }
+  const SUPER = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
+  function superTxt(n) {
+    return String(n).split('').map((c) => SUPER[c] || c).join('')
+  }
+  function notacion(n) {
+    if (!Number.isFinite(n) || n <= 0) return '—'
+    let e = Math.floor(Math.log10(n))
+    let m = n / Math.pow(10, e)
+    // log10 y la división flotante pueden dejar la mantissa en 10,0 o por debajo de 1
+    if (m >= 9.99995) { m = 1; e += 1 }
+    else if (m < 1) { m *= 10; e -= 1 }
+    return fmt(m, 1) + ' × 10' + superTxt(e)
+  }
+  function hexRgb(c) {
+    return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]
+  }
+  function mezclar(c1, c2, t) {
+    const a = hexRgb(c1)
+    const b = hexRgb(c2)
+    const canal = (i) => Math.round(a[i] + (b[i] - a[i]) * t).toString(16).padStart(2, '0')
+    return '#' + canal(0) + canal(1) + canal(2)
+  }
+  function limitar(v, min, max) {
+    return Math.min(max, Math.max(min, v))
+  }
+  function luminancia(hex) {
+    const c = hexRgb(hex).map((v) => {
+      const s = v / 255
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+    })
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+  }
+  function contraste(a, b) {
+    const la = luminancia(a)
+    const lb = luminancia(b)
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
+  }
+  function fondoEscena() {
+    const oscuro = root.getAttribute('data-theme') === 'dark'
+    if (root.getAttribute('data-contraste') === 'alto') return oscuro ? '#000000' : '#ffffff'
+    return oscuro ? '#14181e' : '#fbfcfd'
+  }
+  // Un color de disolución solo es útil si se ve sobre el fondo de la escena: si no alcanza 3:1
+  // se acerca al negro o al blanco hasta conseguirlo, sin cambiar el nombre del color.
+  function colorLegible(hex) {
+    const fondo = fondoEscena()
+    if (contraste(hex, fondo) >= 3) return hex
+    const hacia = luminancia(fondo) > 0.5 ? '#000000' : '#ffffff'
+    let c = hex
+    for (let i = 1; i <= 10 && contraste(c, fondo) < 3; i += 1) c = mezclar(c, hacia, i * 0.1)
+    return c
+  }
+  function notacionVocal(n) {
+    if (!Number.isFinite(n) || n <= 0) return 'sin valor'
+    let e = Math.floor(Math.log10(n))
+    let m = n / Math.pow(10, e)
+    if (m >= 9.99995) { m = 1; e += 1 }
+    else if (m < 1) { m *= 10; e -= 1 }
+    return fmt(m, 1) + ' × 10 elevado a ' + (e < 0 ? 'menos ' + Math.abs(e) : e)
+  }
+  function texto(el, v) {
+    if (el) el.textContent = v
+  }
+  function attr(el, nombre, v) {
+    if (el) el.setAttribute(nombre, v)
+  }
+
+  /* ---------------- modelo químico ---------------- */
+  // Balance de carga de la disolución: [H+] + [Na+] = [OH-] + [A-]
+  // con [A-] = C·Ka/(Ka + [H+]) y C la concentración analítica del ácido.
+  // f(pH) es estrictamente decreciente, así que la bisección converge siempre.
+  // El bracket -1..15 cubre todo el rango de las variables (disoluciones por encima de 1 M dan
+  // pH negativo); la lectura se recorta a 0-14 al devolver. Con 48 iteraciones el error de pH
+  // queda en 10⁻¹³, muy por debajo de las dos decimales que se muestran.
+  function phEquilibrio(cAcido, cBase, ka) {
+    function f(ph) {
+      const h = Math.pow(10, -ph)
+      const a = ka > 0 ? (cAcido * ka) / (ka + h) : cAcido
+      return h + cBase - KW / h - a
+    }
+    let lo = -1
+    let hi = 15
+    for (let i = 0; i < 48; i++) {
+      const mid = (lo + hi) / 2
+      if (f(mid) > 0) lo = mid
+      else hi = mid
+    }
+    const ph = (lo + hi) / 2
+    return limitar(ph, 0, 14)
+  }
+
+  function estadoDisolucion(p) {
+    const vTot = p.va + p.vb
+    const cAcido = (p.ca * p.va) / vTot
+    const cBase = (p.cb * p.vb) / vTot
+    const ph = phEquilibrio(cAcido, cBase, p.ka)
+    const h = Math.pow(10, -ph)
+    const oh = KW / h
+    const veq = p.cb > 0 ? (p.ca * p.va) / p.cb : 0
+    const pheq = phEquilibrio((p.ca * p.va) / (p.va + veq), (p.cb * veq) / (p.va + veq), p.ka)
+    return {
+      ph: ph,
+      poh: limitar(14 - ph, 0, 14),
+      h: h,
+      oh: oh,
+      veq: veq,
+      pheq: pheq,
+      nAcido: (p.ca * p.va) / 1000,
+      nBase: (p.cb * p.vb) / 1000,
+      cAcido: cAcido
+    }
+  }
+
+  function colorIndicador(ind, ph) {
+    if (ind.inf === null) return { hex: ind.acido, nombre: ind.nombreAcido, fraction: 0 }
+    const t = limitar((ph - ind.inf) / (ind.sup - ind.inf), 0, 1)
+    let nombre
+    if (t <= 0.04) nombre = ind.nombreAcido
+    else if (t >= 0.96) nombre = ind.nombreBase
+    else nombre = 'en transición (' + Math.round(t * 100) + ' %)'
+    return { hex: mezclar(ind.acido, ind.base, t), nombre: nombre, fraction: t }
+  }
+
+  /* ---------------- variables ---------------- */
+  const inputs = {
+    acido: esc('acido'),
+    concentracionAcido: esc('concentracion-acido'),
+    volumenAcido: esc('volumen-acido'),
+    concentracionBase: esc('concentracion-base'),
+    volumenBase: esc('volumen-base'),
+    indicador: esc('indicador')
+  }
+
+  // El volumen añadido se acumula en coma flotante y el deslizador es solo su espejo: con el paso
+  // de 0,05 mL del deslizador, los incrementos de 0,04 mL que da la valoración automática se
+  // redondearían hacia abajo y la bureta dejaría de avanzar.
+  let volumenAnadido = 0
+
+  function leerVariables() {
+    return {
+      ka: numero(inputs.acido.value, 0),
+      ca: numero(inputs.concentracionAcido.value, 0.1),
+      va: numero(inputs.volumenAcido.value, 25),
+      cb: numero(inputs.concentracionBase.value, 0.1),
+      vb: limitar(volumenAnadido, 0, CAPACIDAD_BURETA),
+      ind: INDICADORES[inputs.indicador.value] || INDICADORES.ninguno
+    }
+  }
+
+  /* ---------------- geometría de la escena ---------------- */
+  const BURETA_TOP = 36
+  const BURETA_BOTTOM = 244
+  const VASO_TOP = 302
+  const VASO_BOTTOM = 428
+  const VASO_MAX_ML = 120
+  const PUNTA_BURETA = 272
+
+  function buretaY(v) {
+    return BURETA_TOP + (v / CAPACIDAD_BURETA) * (BURETA_BOTTOM - BURETA_TOP)
+  }
+  function nivelVaso(vTot) {
+    const altura = limitar((vTot / VASO_MAX_ML) * (VASO_BOTTOM - VASO_TOP), 6, VASO_BOTTOM - VASO_TOP)
+    return VASO_BOTTOM - altura
+  }
+
+  /* ---------------- geometría de la gráfica ---------------- */
+  const GX0 = 45
+  const GX1 = 545
+  const GY0 = 20
+  const GY1 = 200
+
+  function gx(v) { return GX0 + (v / CAPACIDAD_BURETA) * (GX1 - GX0) }
+  function gy(ph) { return GY1 - (limitar(ph, 0, 14) / 14) * (GY1 - GY0) }
+
+  /* ---------------- estado de la simulación ---------------- */
+  let valorando = false
+  let muestraUltima = -1
+  let muestras = []
+  let ultimoAnuncio = ''
+  const gotas = [esc('gota-1'), esc('gota-2'), esc('gota-3')]
+  let faseGota = 0
+  // Con la valoración en marcha el bucle recalcula el estado en cada cuadro: sin esta ventana de
+  // 1,5 s de tiempo simulado el aria-live reescribiría su texto 25-60 veces por segundo.
+  const CADENCIA_ANUNCIO = 1.5
+  let relojAnuncios = 0
+
+  // Ancho de la banda «cerca del equivalencia», en mL: medio por ciento del volumen de
+  // equivalencia, con un mínimo de 0,02 mL para titulaciones con volúmenes muy pequeños.
+  function bandaEquivalencia(veq) {
+    return Math.max(0.02, 0.005 * veq)
+  }
+
+  function velocidadValoracion(p, veq) {
+    const distancia = Math.abs(p.vb - veq)
+    if (distancia > 4) return 2.5
+    if (distancia > 1.5) return 0.8
+    if (distancia > 0.4) return 0.25
+    return 0.1
+  }
+
+  function anunciar(msg) {
+    if (msg === ultimoAnuncio) return
+    ultimoAnuncio = msg
+    relojAnuncios = 0
+    texto(esc('estado'), msg)
+  }
+
+  /* ---------------- dibujo ---------------- */
+  function dibujarEscena(p, e, color) {
+    const yBureta = buretaY(p.vb)
+    attr(esc('bureta-liquido'), 'y', yBureta.toFixed(1))
+    attr(esc('bureta-liquido'), 'height', (BURETA_BOTTOM - yBureta).toFixed(1))
+
+    const yVaso = nivelVaso(p.va + p.vb)
+    const liquido = esc('vaso-liquido')
+    const colorLiquido = colorLegible(color.hex)
+    const colorBorde = colorLegible(mezclar(colorLiquido, luminancia(fondoEscena()) > 0.5 ? '#000000' : '#ffffff', 0.45))
+    attr(liquido, 'y', yVaso.toFixed(1))
+    attr(liquido, 'height', (VASO_BOTTOM - yVaso).toFixed(1))
+    attr(liquido, 'fill', colorLiquido)
+    attr(esc('vaso-superficie'), 'cy', yVaso.toFixed(1))
+    attr(esc('vaso-superficie'), 'stroke', colorBorde)
+
+    const phY = 430 - (limitar(e.ph, 0, 14) / 14) * 390
+    attr(esc('marcador-ph'), 'points', '92,' + phY.toFixed(1) + ' 106,' + (phY - 8).toFixed(1) + ' 106,' + (phY + 8).toFixed(1))
+    attr(esc('marcador-ph-valor'), 'y', (phY + 5).toFixed(1))
+    texto(esc('marcador-ph-valor'), fmt(e.ph, 2))
+
+    texto(esc('rotulo-bureta'), 'Bureta · NaOH ' + fmt(p.cb, 3) + ' M')
+    texto(esc('rotulo-vaso'), 'Vaso · ' + (p.ka > 0 ? 'CH₃COOH' : 'HCl') + ' ' + fmt(p.va, 1) + ' mL')
+    texto(esc('rotulo-vaso-2'), 'Volumen total ' + fmt(p.va + p.vb, 1) + ' mL')
+    texto(esc('rotulo-volumen'), 'Añadidos: ' + fmt(p.vb, 1) + ' mL')
+
+    // La fase se decide por moles, no por pH: con un ácido débil la disolución puede ser básica
+    // quedando todavía ácido sin neutralizar, y decirlo por pH reforzaría el error conceptual.
+    const cerca = Math.abs(p.vb - e.veq) <= bandaEquivalencia(e.veq)
+    const fase = cerca
+      ? 'Punto de equivalencia.'
+      : (e.nBase < e.nAcido ? 'Queda ácido sin neutralizar.' : 'Base en exceso.')
+    const faseDetalle = cerca
+      ? 'Una gota cambia mucho el pH.'
+      : (e.nBase < e.nAcido ? 'Zona ácida, pH bajo.' : 'Todo el ácido neutralizado.')
+    texto(esc('rotulo-fase'), fase)
+    texto(esc('rotulo-fase-2'), faseDetalle)
+
+    const medio = e.h > e.oh ? 'ácida' : (e.oh > e.h ? 'básica' : 'neutra')
+    attr(esc('escena'), 'aria-label',
+      'Bureta con NaOH ' + fmt(p.cb, 3) + ' M; quedan ' + fmt(CAPACIDAD_BURETA - p.vb, 1) + ' mL dentro y se han añadido ' + fmt(p.vb, 1) +
+      ' mL al vaso. El vaso contiene ' + fmt(p.va + p.vb, 1) + ' mL de disolución ' + medio + ' de color ' + color.nombre +
+      ', con pH ' + fmt(e.ph, 2) + '. La escala de pH de la izquierda marca ' + fmt(e.ph, 2) + '.')
+  }
+
+  function dibujarGotas(p, dt, reducido) {
+    const superficie = nivelVaso(p.va + p.vb)
+    if (reducido) {
+      gotas.forEach((g) => attr(g, 'opacity', 0))
+      return
+    }
+    if (!valorando) {
+      gotas.forEach((g) => attr(g, 'opacity', 0))
+      return
+    }
+    faseGota = (faseGota + dt * 2.2) % 1
+    gotas.forEach((g, i) => {
+      const fase = (faseGota + i / 3) % 1
+      const y = PUNTA_BURETA + fase * (superficie - PUNTA_BURETA)
+      attr(g, 'cy', y.toFixed(1))
+      attr(g, 'opacity', fase < 0.96 ? 0.9 : 0)
+    })
+  }
+
+  // La curva depende solo del ácido, sus concentraciones y el volumen del vaso, no del volumen
+  // añadido: se cachea por esas cuatro variables en lugar de resolver 241 disoluciones en cada
+  // fotograma de la valoración automática.
+  let curvaCache = { clave: '', puntos: '' }
+
+  function curvaValoracion(p) {
+    const clave = [p.ka, p.ca, p.va, p.cb].join('|')
+    if (curvaCache.clave === clave) return curvaCache.puntos
+    const puntos = []
+    const pasos = 240
+    for (let i = 0; i <= pasos; i++) {
+      const vb = (i / pasos) * CAPACIDAD_BURETA
+      const e = estadoDisolucion({ ka: p.ka, ca: p.ca, va: p.va, cb: p.cb, vb: vb })
+      puntos.push(gx(vb).toFixed(1) + ',' + gy(e.ph).toFixed(1))
+    }
+    curvaCache = { clave: clave, puntos: puntos.join(' ') }
+    return curvaCache.puntos
+  }
+
+  function dibujarGrafica(p, e) {
+    attr(esc('curva'), 'points', curvaValoracion(p))
+    const fueraDeBureta = e.veq > CAPACIDAD_BURETA
+    const xEq = gx(limitar(e.veq, 0, CAPACIDAD_BURETA))
+    attr(esc('linea-equivalencia'), 'x1', xEq.toFixed(1))
+    attr(esc('linea-equivalencia'), 'x2', xEq.toFixed(1))
+    attr(esc('linea-equivalencia'), 'opacity', fueraDeBureta ? '0' : '1')
+    attr(esc('rotulo-equivalencia'), 'x', xEq.toFixed(1))
+    attr(esc('rotulo-equivalencia'), 'opacity', fueraDeBureta ? '0' : '1')
+    texto(esc('rotulo-equivalencia'), fueraDeBureta ? '' : 'V eq = ' + fmt(e.veq, 1) + ' mL')
+
+    const x = gx(p.vb)
+    const y = gy(e.ph)
+    attr(esc('punto-actual'), 'cx', x.toFixed(1))
+    attr(esc('punto-actual'), 'cy', y.toFixed(1))
+    const rotulo = esc('rotulo-punto')
+    texto(rotulo, fmt(p.vb, 1) + ' mL · pH ' + fmt(e.ph, 2))
+    attr(rotulo, 'x', (x > 400 ? x - 12 : x + 8).toFixed(1))
+    attr(rotulo, 'text-anchor', x > 400 ? 'end' : 'start')
+    attr(rotulo, 'y', limitar(y - 10, 14, 214).toFixed(1))
+
+    const phInicial = estadoDisolucion({ ka: p.ka, ca: p.ca, va: p.va, cb: p.cb, vb: 0 }).ph
+    const phFinal = estadoDisolucion({ ka: p.ka, ca: p.ca, va: p.va, cb: p.cb, vb: CAPACIDAD_BURETA }).ph
+    const equivalencia = fueraDeBureta
+      ? 'El punto de equivalencia queda fuera de la bureta: harían falta ' + fmt(e.veq, 1) + ' mL de NaOH'
+      : 'El punto de equivalencia está en ' + fmt(e.veq, 1) + ' mL con pH ' + fmt(e.pheq, 2)
+    attr(esc('grafica'), 'aria-label',
+      'Curva de valoración del ácido con NaOH ' + fmt(p.cb, 3) + ' M. El pH empieza en ' + fmt(phInicial, 2) +
+      ' y termina en ' + fmt(phFinal, 2) + ' al añadir ' + CAPACIDAD_BURETA + ' mL. ' + equivalencia +
+      '. Tu punto actual: ' + fmt(p.vb, 1) + ' mL con pH ' + fmt(e.ph, 2) + '.')
+  }
+
+  function escribirLecturas(p, e, color) {
+    texto(esc('lect-ph'), fmt(e.ph, 2))
+    texto(esc('lect-poh'), fmt(e.poh, 2))
+    texto(esc('lect-h'), notacion(e.h))
+    texto(esc('lect-oh'), notacion(e.oh))
+    esc('lect-h').setAttribute('aria-label', notacionVocal(e.h) + ' moles por litro')
+    esc('lect-oh').setAttribute('aria-label', notacionVocal(e.oh) + ' moles por litro')
+    texto(esc('lect-veq'), fmt(e.veq, 1))
+    texto(esc('lect-pheq'), fmt(e.pheq, 2))
+    texto(esc('lect-nacido'), fmt(e.nAcido, 4))
+    texto(esc('lect-nbase'), fmt(e.nBase, 4))
+    // El exceso se juzga en proporción a los moles que hay en el vaso: con 2,5·10⁻³ mol, un resto
+    // de 10⁻⁹ mol es equivalencia a efectos de bureta, pero 10⁻⁵ mol todavía se escribe.
+    const exceso = e.nAcido - e.nBase
+    const magnitud = Math.abs(exceso)
+    const lado = exceso > 0 ? 'ácido' : 'base'
+    const lectura = magnitud <= 1e-4 * e.nAcido ? 'ninguno (equivalencia)'
+      : (magnitud < 1e-4 ? notacion(magnitud) : fmt(magnitud, 4)) + ' de ' + lado
+    texto(esc('lect-exceso'), lectura)
+    texto(esc('lect-color'), color.nombre)
+
+    texto(esc('val-concentracion-acido'), fmt(p.ca, 2))
+    texto(esc('val-volumen-acido'), fmt(p.va, 0))
+    texto(esc('val-concentracion-base'), fmt(p.cb, 2))
+    texto(esc('val-volumen-base'), fmt(p.vb, 1))
+  }
+
+  function registrarMuestra(p, e, color) {
+    const clave = Math.round(p.vb * 2)
+    if (clave === muestraUltima) return
+    muestraUltima = clave
+    muestras.push({ v: p.vb, ph: e.ph, poh: e.poh, color: color.hex, nombre: color.nombre })
+    if (muestras.length > 130) muestras.shift()
+    pintarTabla()
+  }
+
+  function pintarTabla() {
+    const cuerpo = esc('tabla-cuerpo')
+    if (!cuerpo) return
+    while (cuerpo.firstChild) cuerpo.removeChild(cuerpo.firstChild)
+    const filas = muestras.slice(-40)
+    filas.forEach((m) => {
+      const tr = document.createElement('tr')
+      const celdas = [fmt(m.v, 1), fmt(m.ph, 2), fmt(m.poh, 2)]
+      celdas.forEach((valor) => {
+        const td = document.createElement('td')
+        td.textContent = valor
+        tr.appendChild(td)
+      })
+      const td = document.createElement('td')
+      const muestra = document.createElement('span')
+      muestra.className = 'muestra-color'
+      muestra.style.setProperty('background', m.color)
+      muestra.setAttribute('aria-hidden', 'true')
+      td.appendChild(muestra)
+      td.appendChild(document.createTextNode(m.nombre))
+      tr.appendChild(td)
+      cuerpo.appendChild(tr)
+    })
+  }
+
+  function copiarDatos() {
+    const lineas = ['Volumen_añadido_mL\tpH\tpOH\tColor']
+    muestras.forEach((m) => lineas.push(fmt(m.v, 2) + '\t' + fmt(m.ph, 2) + '\t' + fmt(m.poh, 2) + '\t' + m.nombre))
+    const aviso = esc('aviso-copiar')
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lineas.join('\n')).then(
+        () => texto(aviso, 'Datos copiados al portapapeles (' + muestras.length + ' filas).'),
+        () => texto(aviso, 'Tu navegador no permite copiar. Usa la tabla de arriba para transcribir los valores.')
+      )
+    } else {
+      texto(aviso, 'Tu navegador no permite copiar. Usa la tabla de arriba para transcribir los valores.')
+    }
+  }
+
+  /* ---------------- ciclo de actualización ---------------- */
+  function actualizar() {
+    const p = leerVariables()
+    const e = estadoDisolucion(p)
+    const color = colorIndicador(p.ind, e.ph)
+    escribirLecturas(p, e, color)
+    dibujarEscena(p, e, color)
+    dibujarGrafica(p, e)
+    registrarMuestra(p, e, color)
+    attr(inputs.volumenBase, 'aria-valuetext', fmt(p.vb, 1) + ' mL, pH ' + fmt(e.ph, 2) + ', color ' + color.nombre)
+    return { p: p, e: e, color: color }
+  }
+
+  function avisoBuretaVacia(e) {
+    if (e.veq > CAPACIDAD_BURETA) {
+      return 'Bureta vacía con ' + CAPACIDAD_BURETA + ' mL y pH ' + fmt(e.ph, 2) + ': la equivalencia estaría en ' +
+        fmt(e.veq, 1) + ' mL, fuera de la bureta. Sube la concentración de NaOH o reduce el volumen de ácido.'
+    }
+    return 'Bureta vacía: ' + CAPACIDAD_BURETA + ' mL añadidos y pH ' + fmt(e.ph, 2) + '.'
+  }
+
+  // Las mismas bandas que usa comentar(), para decidir cuándo merece la pena volver a hablar
+  // mientras la bureta está en marcha sin repetir la narración en cada cuadro.
+  function faseDe(p, e) {
+    if (p.vb === 0) return 'inicio'
+    if (p.vb >= CAPACIDAD_BURETA) return 'bureta-vacia'
+    const falta = e.veq - p.vb
+    if (Math.abs(falta) <= bandaEquivalencia(e.veq)) return 'equivalencia'
+    if (Math.abs(falta) <= Math.max(2, 0.05 * e.veq)) return 'cerca'
+    return falta > 0 ? 'queda-acido' : 'base-en-exceso'
+  }
+
+  function comentar(p, e) {
+    if (p.vb === 0) {
+      anunciar('Vaso con ' + fmt(p.va, 1) + ' mL de ' + (p.ka > 0 ? 'ácido acético' : 'HCl') + ' ' + fmt(p.ca, 2) + ' M, pH ' + fmt(e.ph, 2) + '. Pulsa «Iniciar valoración» o «Añadir 0,5 mL».')
+      return
+    }
+    if (p.vb >= CAPACIDAD_BURETA) {
+      anunciar(avisoBuretaVacia(e))
+      return
+    }
+    const falta = e.veq - p.vb
+    if (Math.abs(falta) <= bandaEquivalencia(e.veq)) {
+      if (Math.abs(falta) <= 0.01) {
+        anunciar('Punto de equivalencia en ' + fmt(e.veq, 1) + ' mL: estás justo ahí, pH ' + fmt(e.pheq, 2) +
+          ', con los ' + fmt(e.nAcido, 4) + ' mol de ácido neutralizados.')
+      } else {
+        anunciar('Punto de equivalencia en ' + fmt(e.veq, 1) + ' mL (pH ' + fmt(e.pheq, 2) + '): ' +
+          (falta > 0 ? 'te faltan ' + fmt(falta, 2) + ' mL de NaOH' : 'te has pasado en ' + fmt(-falta, 2) + ' mL') + '.')
+      }
+      return
+    }
+    if (Math.abs(falta) <= Math.max(2, 0.05 * e.veq)) {
+      anunciar('Cerca del equivalencia (' + fmt(e.veq, 1) + ' mL): añade la base despacio, el pH cambia de golpe.')
+      return
+    }
+    anunciar(fmt(p.vb, 1) + ' mL añadidos · pH ' + fmt(e.ph, 2) + ' · ' + (p.vb < e.veq ? 'queda ácido sin neutralizar' : 'base en exceso') + '.')
+  }
+
+  function accion(p, e) {
+    const r = actualizar()
+    comentar(r.p, r.e)
+    return r
+  }
+
+  function setVolumen(v) {
+    volumenAnadido = limitar(v, 0, CAPACIDAD_BURETA)
+    inputs.volumenBase.value = volumenAnadido.toFixed(2)
+    accion()
+  }
+
+  function reiniciar() {
+    valorando = false
+    sincronizarBotonValorar()
+    muestraUltima = -1
+    muestras = []
+    setVolumen(0)
+  }
+
+  /* ---------------- controles ---------------- */
+  ;['concentracion-acido', 'volumen-acido', 'concentracion-base'].forEach((id) => {
+    const campo = document.getElementById(id)
+    campo.addEventListener('input', () => accion())
+  })
+  inputs.volumenBase.addEventListener('input', () => {
+    volumenAnadido = numero(inputs.volumenBase.value, 0)
+    accion()
+  })
+  inputs.acido.addEventListener('change', () => accion())
+  inputs.indicador.addEventListener('change', () => accion())
+
+  const btnValorar = esc('btn-valorar')
+  function sincronizarBotonValorar() {
+    btnValorar.setAttribute('aria-pressed', valorando ? 'true' : 'false')
+    btnValorar.textContent = valorando ? 'Pausar valoración' : 'Iniciar valoración'
+  }
+  function cambiarValoracion(forzar) {
+    valorando = typeof forzar === 'boolean' ? forzar : !valorando
+    if (valorando && volumenAnadido >= CAPACIDAD_BURETA) {
+      volumenAnadido = 0
+      inputs.volumenBase.value = '0'
+    }
+    sincronizarBotonValorar()
+    const r = actualizar()
+    if (valorando) anunciar('Valoración en marcha: la base cae rápido lejos del equivalencia y muy despacio al acercarse.')
+    else if (r.p.vb >= CAPACIDAD_BURETA) anunciar(avisoBuretaVacia(r.e))
+    else anunciar('Valoración pausada en ' + fmt(r.p.vb, 1) + ' mL, pH ' + fmt(r.e.ph, 2) + '.')
+  }
+  btnValorar.addEventListener('click', () => cambiarValoracion())
+  esc('btn-paso').addEventListener('click', () => { cambiarValoracion(false); setVolumen(volumenAnadido + 0.5) })
+  esc('btn-equivalencia').addEventListener('click', () => {
+    cambiarValoracion(false)
+    const r = actualizar()
+    setVolumen(r.e.veq)
+  })
+  esc('btn-reiniciar').addEventListener('click', reiniciar)
+
+  const btnDatos = esc('btn-datos')
+  btnDatos.addEventListener('click', () => {
+    const oculto = esc('datos').hasAttribute('hidden')
+    if (oculto) esc('datos').removeAttribute('hidden')
+    else esc('datos').setAttribute('hidden', '')
+    btnDatos.setAttribute('aria-pressed', oculto ? 'true' : 'false')
+    btnDatos.setAttribute('aria-expanded', oculto ? 'true' : 'false')
+    btnDatos.textContent = oculto ? 'Ocultar datos' : 'Ver datos'
+  })
+  esc('btn-copiar').addEventListener('click', copiarDatos)
+
+  /* ---------------- tema, contraste, texto, movimiento ---------------- */
+  const btnTema = esc('btn-tema')
+  let temaManual = false
+  function aplicarTema(tema) {
+    root.setAttribute('data-theme', tema)
+    btnTema.setAttribute('aria-pressed', tema === 'dark' ? 'true' : 'false')
+    btnTema.textContent = tema === 'dark' ? 'Modo claro' : 'Modo oscuro'
+    btnTema.setAttribute('aria-label', tema === 'dark' ? 'Activar el modo claro' : 'Activar el modo oscuro')
+    guardarPref('sim:neutralizacion-acido-base:tema', tema)
+  }
+  btnTema.addEventListener('click', () => {
+    temaManual = true
+    aplicarTema(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
+  })
+
+  const btnContraste = esc('btn-contraste')
+  function aplicarContraste(alto) {
+    if (alto) root.setAttribute('data-contraste', 'alto')
+    else root.removeAttribute('data-contraste')
+    btnContraste.setAttribute('aria-pressed', alto ? 'true' : 'false')
+    btnContraste.setAttribute('aria-label', alto ? 'Desactivar el contraste alto' : 'Activar el contraste alto')
+    guardarPref('sim:neutralizacion-acido-base:contraste', alto ? 'alto' : 'normal')
+  }
+  btnContraste.addEventListener('click', () => aplicarContraste(root.getAttribute('data-contraste') !== 'alto'))
+
+  function aplicarFuente(rem) {
+    const v = limitar(rem, 0.875, 1.5)
+    root.style.setProperty('--fs', v + 'rem')
+    guardarPref('sim:neutralizacion-acido-base:fs', String(v))
+  }
+  function fuenteActual() {
+    const v = parseFloat(leerPref('sim:neutralizacion-acido-base:fs'))
+    return Number.isFinite(v) ? v : 1
+  }
+  esc('btn-texto-menos').addEventListener('click', () => aplicarFuente(fuenteActual() - 0.125))
+  esc('btn-texto-mas').addEventListener('click', () => aplicarFuente(fuenteActual() + 0.125))
+
+  const btnMovimiento = esc('btn-movimiento')
+  function aplicarMovimiento(reducido) {
+    if (reducido) root.setAttribute('data-movimiento', 'reducido')
+    else root.removeAttribute('data-movimiento')
+    btnMovimiento.setAttribute('aria-pressed', reducido ? 'true' : 'false')
+    btnMovimiento.textContent = reducido ? 'Movimiento completo' : 'Menos movimiento'
+    btnMovimiento.setAttribute('aria-label', reducido ? 'Activar el movimiento completo de las gotas' : 'Reducir el movimiento de las gotas')
+    guardarPref('sim:neutralizacion-acido-base:movimiento', reducido ? 'reducido' : 'normal')
+  }
+  btnMovimiento.addEventListener('click', () => {
+    const reducido = root.getAttribute('data-movimiento') === 'reducido'
+    aplicarMovimiento(!reducido)
+    anunciar(reducido
+      ? 'Movimiento completo: las gotas vuelven a caer durante la valoración.'
+      : 'Movimiento reducido: las gotas dejan de animarse. La valoración sigue funcionando con los botones y la tabla de datos.')
+  })
+
+  /* ---------------- teclado ---------------- */
+  document.addEventListener('keydown', (ev) => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return
+    const t = ev.target
+    const tag = t && t.tagName
+    // Un control enfocado conserva su teclado: Espacio activa el botón, las letras permiten
+    // escribir dentro de los <select> y las flechas siguen moviendo los deslizadores.
+    if (tag === 'BUTTON' || tag === 'SELECT' || tag === 'TEXTAREA') return
+    if (tag === 'INPUT' && !(t.type === 'range' && ev.key === ' ')) return
+    switch (ev.key) {
+      case ' ':
+        ev.preventDefault()
+        cambiarValoracion()
+        break
+      case 'r':
+      case 'R':
+        reiniciar()
+        break
+      case 'a':
+      case 'A':
+        cambiarValoracion(false)
+        setVolumen(volumenAnadido + 0.5)
+        break
+      case 'e':
+      case 'E': {
+        cambiarValoracion(false)
+        const r = actualizar()
+        setVolumen(r.e.veq)
+        break
+      }
+      case 't':
+      case 'T':
+        btnTema.click()
+        break
+      case 'd':
+      case 'D':
+        btnDatos.click()
+        break
+      case 'm':
+      case 'M':
+        btnMovimiento.click()
+        break
+      default:
+        break
+    }
+  })
+
+  /* ---------------- arranque ---------------- */
+  const oscuroInicial = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const guardadoTema = leerPref('sim:neutralizacion-acido-base:tema')
+  aplicarTema(guardadoTema === 'dark' || guardadoTema === 'light' ? guardadoTema : (oscuroInicial ? 'dark' : 'light'))
+  aplicarContraste(leerPref('sim:neutralizacion-acido-base:contraste') === 'alto')
+  aplicarFuente(fuenteActual())
+  accion()
+  const movimientoInicial = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || leerPref('sim:neutralizacion-acido-base:movimiento') === 'reducido'
+  aplicarMovimiento(movimientoInicial)
+
+  // El sistema puede cambiar de tema o de movimiento mientras la página está abierta.
+  if (window.matchMedia) {
+    const mqTema = window.matchMedia('(prefers-color-scheme: dark)')
+    const mqMov = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mqTema.addEventListener) mqTema.addEventListener('change', (ev) => { if (!temaManual) aplicarTema(ev.matches ? 'dark' : 'light') })
+    if (mqMov.addEventListener) mqMov.addEventListener('change', (ev) => aplicarMovimiento(ev.matches))
+  }
+
+  let ultimo = 0
+  let faseBucle = ''
+  function bucle(ahora) {
+    const dtReal = ultimo ? Math.min(0.05, (ahora - ultimo) / 1000) : 0
+    ultimo = ahora
+    const p = leerVariables()
+    if (valorando) {
+      const e = estadoDisolucion(p)
+      const velocidad = velocidadValoracion(p, e.veq)
+      const nuevo = p.vb + velocidad * dtReal
+      if (nuevo >= CAPACIDAD_BURETA) {
+        volumenAnadido = CAPACIDAD_BURETA
+        inputs.volumenBase.value = String(CAPACIDAD_BURETA)
+        cambiarValoracion(false)
+      } else {
+        volumenAnadido = nuevo
+        inputs.volumenBase.value = nuevo.toFixed(2)
+        const r = actualizar()
+        relojAnuncios += dtReal
+        const fase = faseDe(r.p, r.e)
+        if (fase !== faseBucle || relojAnuncios >= CADENCIA_ANUNCIO) {
+          faseBucle = fase
+          relojAnuncios = 0
+          comentar(r.p, r.e)
+        }
+        dibujarGotas(r.p, dtReal, root.getAttribute('data-movimiento') === 'reducido')
+      }
+    } else {
+      dibujarGotas(p, dtReal, root.getAttribute('data-movimiento') === 'reducido')
+    }
+    window.requestAnimationFrame(bucle)
+  }
+  window.requestAnimationFrame(bucle)
+})()
+</script>
+</body>
+</html>

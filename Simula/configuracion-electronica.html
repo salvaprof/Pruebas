@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Simulación de configuración electrónica: capas, subniveles, orden de llenado (n+ℓ), iones, electrones desapareados y energía de ionización con efecto del fotón. Química, 4º ESO y 1º Bachillerato.">
+<title>El átomo por capas: configuración electrónica y niveles de energía · Simulación</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fs: 1rem;
+    --bg: #f3f5f8;
+    --panel: #ffffff;
+    --panel-2: #e8edf4;
+    --fg: #151a21;
+    --muted: #48525f;
+    --line: #c2cbd7;
+    --accent: #0b57a4;
+    --accent-2: #0d6b52;
+    --ok: #166534;
+    --warn: #9a3412;
+    --scene-bg: #fafcff;
+    --grid: #d9e1ea;
+    --capa: #7b8794;
+    --electron: #0b57a4;
+    --nucleo: #b45309;
+    --sombra: 0 1px 3px rgba(21, 26, 33, .14);
+  }
+
+  /* El esquema del navegador sigue al tema elegido: controles nativos, barras y autofill coherentes. */
+  :root[data-theme="light"] { color-scheme: light; }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #12161d;
+    --panel: #1a2029;
+    --panel-2: #232b36;
+    --fg: #eef2f7;
+    --muted: #a9b4c2;
+    --line: #3a4553;
+    --accent: #6cb2f5;
+    --accent-2: #5fd0b4;
+    --ok: #79d99a;
+    --warn: #f2a37a;
+    --scene-bg: #151b23;
+    --grid: #2c3644;
+    --capa: #8896a6;
+    --electron: #8ec7ff;
+    --nucleo: #f0b269;
+    --sombra: 0 1px 3px rgba(0, 0, 0, .5);
+  }
+
+  [data-contraste="alto"] {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #efefef;
+    --fg: #000000;
+    --muted: #1f1f1f;
+    --line: #5a5a5a;
+    --accent: #0a4b86;
+    --accent-2: #0a5c3f;
+    --ok: #0a5c22;
+    --warn: #8a2b00;
+    --scene-bg: #ffffff;
+    --grid: #8a8a8a;
+    --capa: #4c4c4c;
+    --electron: #0a4b86;
+    --nucleo: #7a3200;
+  }
+
+  [data-theme="dark"][data-contraste="alto"] {
+    --bg: #000000;
+    --panel: #0c0c0c;
+    --panel-2: #1c1c1c;
+    --fg: #ffffff;
+    --muted: #e8e8e8;
+    --line: #9a9a9a;
+    --accent: #8ec7ff;
+    --accent-2: #7ce0c0;
+    --ok: #8ce6a6;
+    --warn: #ffb98a;
+    --scene-bg: #000000;
+    --grid: #6f6f6f;
+    --capa: #b8b8b8;
+    --electron: #8ec7ff;
+    --nucleo: #ffc98a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-theme="dark"]) {
+      --bg: #12161d;
+      --panel: #1a2029;
+      --panel-2: #232b36;
+      --fg: #eef2f7;
+      --muted: #a9b4c2;
+      --line: #3a4553;
+      --accent: #6cb2f5;
+      --accent-2: #5fd0b4;
+      --ok: #79d99a;
+      --warn: #f2a37a;
+      --scene-bg: #151b23;
+      --grid: #2c3644;
+      --capa: #8896a6;
+      --electron: #8ec7ff;
+      --nucleo: #f0b269;
+      --sombra: 0 1px 3px rgba(0, 0, 0, .5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { font-size: var(--fs); }
+
+  body {
+    margin: 0;
+    padding: 1rem clamp(.75rem, 2vw, 1.75rem) 2.5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    line-height: 1.5;
+  }
+
+  [hidden] { display: none !important; }
+
+  header.cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1rem;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: .9rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h1 { font-size: clamp(1.25rem, 1.05rem + 1.1vw, 1.75rem); margin: 0 0 .25rem; }
+
+  .etiquetas { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+  .etiqueta {
+    font-size: .78rem;
+    padding: .2rem .55rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel-2);
+    color: var(--fg);
+  }
+
+  .subtitulo { margin: .35rem 0 0; color: var(--muted); font-size: .95rem; max-width: 46rem; }
+
+  .barra { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+  button {
+    font: inherit;
+    min-height: 44px;
+    padding: .45rem .8rem;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--panel);
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  button:hover { background: var(--panel-2); }
+
+  button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  [data-theme="dark"] button[aria-pressed="true"],
+  [data-theme="dark"][data-contraste="alto"] button[aria-pressed="true"] { color: #08111c; }
+
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .95fr);
+    gap: 1rem;
+    margin-top: 1.1rem;
+  }
+
+  .columna { display: grid; gap: 1rem; align-content: start; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: .9rem 1rem 1.05rem;
+    box-shadow: var(--sombra);
+  }
+
+  .panel h2 { font-size: 1.02rem; margin: 0 0 .55rem; }
+
+  figure { margin: 0; }
+
+  svg.escena, svg.grafica {
+    width: 100%;
+    height: auto;
+    background: var(--scene-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: block;
+  }
+
+  figcaption { color: var(--muted); font-size: .85rem; margin-top: .45rem; }
+
+  .nota { color: var(--muted); font-size: .82rem; margin: .45rem 0 0; }
+
+  svg text { font-family: inherit; fill: var(--fg); }
+  .txt-rot { font-size: .88rem; fill: var(--muted); }
+  .txt-eje { font-size: .88rem; fill: var(--muted); }
+  .txt-chip { font-size: .9rem; font-weight: 600; }
+  .txt-sub { font-size: .88rem; }
+  .txt-count { font-size: .9rem; fill: var(--muted); }
+  .txt-nucleo { font-size: 1.15rem; font-weight: 700; fill: #ffffff; }
+  .txt-nucleo-carga { font-size: .82rem; fill: #ffffff; }
+  .txt-punto { font-size: .88rem; font-weight: 600; }
+  .txt-umbral { font-size: .88rem; font-weight: 600; fill: var(--accent-2); }
+  /* Las dos figuras comparten columna y escala: la letra se unifica por píxel dibujado y la gráfica
+     baja de 1,1 rem para no quedar un 30 % más grande que la escena. */
+  svg.grafica .txt-eje { font-size: 1rem; }
+  svg.grafica .txt-punto { font-size: 1.05rem; }
+  svg.grafica .txt-umbral { font-size: 1rem; }
+  svg.grafica .txt-delta { font-size: 1rem; font-weight: 700; fill: var(--warn); }
+  /* Halo del color del fondo: los rótulos se leen aunque crucen la curva. */
+  svg text.halo { paint-order: stroke; stroke: var(--scene-bg); stroke-width: 4; stroke-linejoin: round; }
+
+  circle.capa { fill: none; stroke: var(--capa); stroke-width: 2; }
+  circle.capa-externa { stroke: var(--accent); stroke-width: 3.5; }
+  circle.capa-vacia { stroke: var(--capa); stroke-width: 2; stroke-dasharray: 5 6; }
+  circle.nucleo { fill: var(--nucleo); stroke: var(--nucleo); stroke-width: 1; }
+  circle.electron { fill: var(--electron); stroke: var(--scene-bg); stroke-width: 1.5; }
+  /* El último electrón añadido se distingue sin depender del color: radio 8 frente a 6 (lo fija el JS)
+     y anillo del color de aviso. */
+  circle.electron-nuevo { fill: var(--accent-2); stroke: var(--warn); stroke-width: 2.5; }
+  rect.chip { fill: var(--panel-2); stroke: var(--capa); stroke-width: 1.5; }
+  rect.chip-externa { fill: var(--accent); stroke: var(--accent); }
+  text.chip-externa { fill: #ffffff; }
+
+  rect.sub-caja { fill: none; stroke: var(--capa); stroke-width: 1.5; }
+  rect.sub-ocupado { stroke: var(--accent); stroke-width: 2.5; }
+  /* Cada cajita es un orbital: media altura = 1 electrón, altura completa = 2 (apareados). */
+  rect.sub-orb-track { fill: var(--panel-2); stroke: var(--capa); stroke-width: 1; }
+  rect.sub-orb-e { fill: var(--accent-2); stroke: var(--scene-bg); stroke-width: 1; }
+
+  line.rejilla { stroke: var(--grid); stroke-width: 1; }
+  line.separador { stroke: var(--capa); stroke-width: 1.5; stroke-dasharray: 4 5; }
+  polyline.curva { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  circle.punto-dato { fill: var(--scene-bg); stroke: var(--accent); stroke-width: 1.5; }
+  circle.punto { fill: var(--accent); stroke: var(--scene-bg); stroke-width: 2; }
+  circle.punto-casing { fill: none; stroke: var(--scene-bg); stroke-width: 3; }
+  line.foton { stroke: var(--warn); stroke-width: 2.5; stroke-dasharray: 9 6; }
+  line.umbral { stroke: var(--accent-2); stroke-width: 2; stroke-dasharray: 2 5; }
+  /* Canal del color del fondo bajo el umbral y bajo el fotón: dos discontinuas casi superpuestas
+     se leen como una sola sin él. */
+  line.casing { fill: none; stroke: var(--scene-bg); stroke-width: 6; }
+  line.delta { stroke: var(--warn); stroke-width: 3; }
+  /* Punteado, no rayas: la línea del átomo actual no puede confundirse con los separadores de periodo. */
+  line.actual { stroke: var(--capa); stroke-width: 2; stroke-dasharray: 1 6; stroke-linecap: round; }
+  line.regla { stroke: var(--capa); stroke-width: 1.5; }
+
+  /* El núcleo y el chip de capa externa son rellenos de color: su texto necesita el color del fondo. */
+  [data-theme="dark"] .txt-nucleo,
+  [data-theme="dark"] .txt-nucleo-carga { fill: var(--bg); }
+  [data-theme="dark"] text.chip-externa { fill: #08111c; }
+  [data-theme="dark"][data-contraste="alto"] .txt-nucleo,
+  [data-theme="dark"][data-contraste="alto"] .txt-nucleo-carga { fill: #000000; }
+  [data-theme="dark"][data-contraste="alto"] text.chip-externa { fill: #000000; }
+
+  /* Contraste alto: todos los trazos de la escena y la gráfica alcanzan 3 px. */
+  [data-contraste="alto"] circle.capa,
+  [data-contraste="alto"] circle.capa-vacia,
+  [data-contraste="alto"] circle.nucleo,
+  [data-contraste="alto"] circle.electron,
+  [data-contraste="alto"] circle.punto,
+  [data-contraste="alto"] circle.punto-dato,
+  [data-contraste="alto"] rect.chip,
+  [data-contraste="alto"] rect.sub-caja,
+  [data-contraste="alto"] rect.sub-orb-track,
+  [data-contraste="alto"] line.rejilla,
+  [data-contraste="alto"] line.separador,
+  [data-contraste="alto"] polyline.curva,
+  [data-contraste="alto"] line.foton,
+  [data-contraste="alto"] line.umbral,
+  [data-contraste="alto"] line.delta,
+  [data-contraste="alto"] line.regla,
+  [data-contraste="alto"] line.actual { stroke-width: 3; }
+
+  .controles { display: grid; gap: .95rem; }
+
+  .control { display: grid; gap: .3rem; }
+
+  .control label { font-weight: 600; font-size: .92rem; }
+
+  .control .fila { display: flex; align-items: center; gap: .6rem; }
+
+  input[type="range"] {
+    flex: 1;
+    min-height: 44px;
+    accent-color: var(--accent);
+    background: transparent;
+  }
+
+  output.valor {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 4.6rem;
+    text-align: right;
+    font-size: .95rem;
+  }
+
+  .unidad { color: var(--muted); font-size: .82rem; }
+
+  /* La unidad del deslizador de energía va en el propio valor: así el número y su eV se leen juntos. */
+  output.valor[data-unidad="eV"]::after { content: " eV"; color: var(--muted); font-weight: 400; font-size: .82rem; }
+
+  .ayuda { color: var(--muted); font-size: .82rem; margin: 0; }
+
+  select {
+    font: inherit;
+    min-height: 44px;
+    padding: .4rem .6rem;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--panel);
+    color: var(--fg);
+    width: 100%;
+  }
+
+  .acciones { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+  dl.lecturas { margin: 0; display: grid; gap: .4rem; }
+
+  dl.lecturas div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .35rem .6rem;
+    padding: .38rem .55rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+  }
+
+  dl.lecturas dt { font-size: .82rem; color: var(--muted); flex: 1 1 10rem; }
+
+  dl.lecturas dd {
+    margin: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-size: .95rem;
+  }
+
+  #estado {
+    font-size: .92rem;
+    padding: .6rem .75rem;
+    border-left: 4px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    margin: 0;
+  }
+
+  #datos { margin-top: .6rem; overflow-x: auto; }
+  #comparacion { margin-top: .8rem; overflow-x: auto; }
+
+  table { border-collapse: collapse; width: 100%; font-size: .78rem; }
+
+  caption { text-align: left; font-size: .85rem; color: var(--muted); padding-bottom: .4rem; }
+
+  th, td { border: 1px solid var(--line); padding: .28rem .34rem; text-align: right; }
+
+  th { background: var(--panel-2); }
+
+  th[scope="row"], td:first-child { text-align: left; }
+
+  /* La fila del elemento que se está viendo: fondo y negrita, no solo color. */
+  #tabla-datos tr[data-actual="true"] th[scope="row"],
+  #tabla-datos tr[data-actual="true"] td { background: var(--panel-2); font-weight: 700; }
+
+  /* La tabla vive en la columna estrecha: celdas que se parten y tipo de letra compacto para no necesitar scroll. */
+  @media (max-width: 1150px) {
+    table { font-size: .72rem; }
+    th, td { padding: .25rem .3rem; }
+  }
+
+  section.bloque { margin-top: 1.1rem; }
+
+  /* Los bloques de consigna van dentro de main y ocupan todo el ancho de la rejilla. */
+  main > section.bloque { grid-column: 1 / -1; }
+
+  ol.preguntas { margin: 0; padding-left: 1.2rem; display: grid; gap: .45rem; }
+
+  ul.lista { margin: 0; padding-left: 1.2rem; display: grid; gap: .4rem; }
+
+  h3.grupo { margin: .9rem 0 .3rem; font-size: .95rem; color: var(--accent); }
+  h3.grupo + ol.preguntas { margin-top: .2rem; }
+
+  footer.pie {
+    margin-top: 1.4rem;
+    padding-top: .9rem;
+    border-top: 1px solid var(--line);
+    font-size: .82rem;
+    color: var(--muted);
+    display: grid;
+    gap: .4rem;
+  }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* Con la letra grande la rejilla se apila: cada bloque ocupa todo el ancho y nada necesita scroll horizontal. */
+  :root[data-letra="grande"] main { grid-template-columns: minmax(0, 1fr); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  [data-movimiento="reducido"] circle.electron-nuevo { animation: none; }
+
+  @keyframes pulso {
+    0% { r: 10; }
+    100% { r: 6; }
+  }
+
+  circle.electron-nuevo { animation: pulso .5s ease-out 1; }
+</style>
+</head>
+<body data-sim-id="configuracion-electronica" data-materia="Química" data-nivel="Ambos" data-render="svg">
+<header class="cabecera">
+  <div>
+    <h1>El átomo por capas: configuración electrónica y niveles de energía</h1>
+    <div class="etiquetas">
+      <span class="etiqueta">Química</span>
+      <span class="etiqueta">4º ESO y 1º Bachillerato</span>
+      <span class="etiqueta">Unidad: estructura de la materia</span>
+      <span class="etiqueta">Duración estimada: 25 min</span>
+    </div>
+    <p class="subtitulo">Construye un átomo electrón a electrón, conviértelo en ion y ilumínalo con un fotón:
+      verás cómo se llenan las capas, en qué orden se vacían y cuánta energía hace falta para arrancar un electrón.</p>
+  </div>
+  <div class="barra">
+    <button id="btn-tema" type="button" aria-pressed="false" aria-keyshortcuts="t"
+            aria-label="Modo oscuro: cambia entre tema claro y tema oscuro">Modo oscuro</button>
+    <button id="btn-contraste" type="button" aria-pressed="false"
+            aria-label="Contraste alto: activa la paleta de máximo contraste">Contraste alto</button>
+    <button id="btn-texto-menos" type="button" data-action="texto-menos" aria-label="A− letra más pequeña" title="Letra más pequeña">A−</button>
+    <button id="btn-texto-mas" type="button" data-action="texto-mas" aria-label="A+ letra más grande" title="Letra más grande">A+</button>
+    <output class="valor" aria-live="off" id="val-letra" aria-label="Tamaño de letra actual">100 %</output>
+    <button id="btn-movimiento" type="button" aria-pressed="false" aria-keyshortcuts="m"
+            aria-label="Menos movimiento: reduce la velocidad de la animación">Menos movimiento</button>
+  </div>
+</header>
+
+<main>
+  <div class="columna">
+    <figure class="panel">
+      <svg id="escena" class="escena" viewBox="0 0 560 470" role="img" aria-describedby="escena-resumen"
+           aria-label="Átomo por capas y diagrama de orden de llenado.">
+        <g id="atomo">
+          <circle id="capa-5" class="capa capa-vacia" cx="185" cy="264" r="122"></circle>
+          <circle id="capa-4" class="capa capa-vacia" cx="185" cy="264" r="102"></circle>
+          <circle id="capa-3" class="capa" cx="185" cy="264" r="82"></circle>
+          <circle id="capa-2" class="capa" cx="185" cy="264" r="62"></circle>
+          <circle id="capa-1" class="capa" cx="185" cy="264" r="42"></circle>
+          <circle id="nucleo" class="nucleo" cx="185" cy="264" r="26"></circle>
+          <text id="nucleo-simbolo" class="txt-nucleo" x="185" y="262" text-anchor="middle">Cl</text>
+          <text id="nucleo-carga" class="txt-nucleo-carga" x="185" y="280" text-anchor="middle">17 p+</text>
+          <g id="electrones">
+            <circle id="e-1" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-2" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-3" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-4" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-5" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-6" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-7" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-8" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-9" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-10" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-11" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-12" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-13" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-14" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-15" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-16" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-17" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-18" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-19" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-20" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-21" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-22" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-23" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-24" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-25" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-26" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-27" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-28" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-29" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-30" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-31" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-32" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-33" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-34" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-35" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-36" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-37" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-38" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+            <circle id="e-39" class="electron" cx="185" cy="222" r="6" opacity="0"></circle>
+          </g>
+          <g id="chips">
+            <g id="chip-5"><rect id="chip-5-caja" class="chip" x="156" y="16" width="58" height="18" rx="6"></rect><text id="chip-5-texto" class="txt-chip" x="185" y="29" text-anchor="middle">O 0</text></g>
+            <g id="chip-4"><rect id="chip-4-caja" class="chip" x="156" y="40" width="58" height="18" rx="6"></rect><text id="chip-4-texto" class="txt-chip" x="185" y="53" text-anchor="middle">N 0</text></g>
+            <g id="chip-3"><rect id="chip-3-caja" class="chip" x="156" y="64" width="58" height="18" rx="6"></rect><text id="chip-3-texto" class="txt-chip" x="185" y="77" text-anchor="middle">M 0</text></g>
+            <g id="chip-2"><rect id="chip-2-caja" class="chip" x="156" y="88" width="58" height="18" rx="6"></rect><text id="chip-2-texto" class="txt-chip" x="185" y="101" text-anchor="middle">L 0</text></g>
+            <g id="chip-1"><rect id="chip-1-caja" class="chip" x="156" y="112" width="58" height="18" rx="6"></rect><text id="chip-1-texto" class="txt-chip" x="185" y="125" text-anchor="middle">K 0</text></g>
+          </g>
+          <g id="escala-capa">
+            <text class="txt-count" x="330" y="130" text-anchor="middle">n</text>
+            <line class="regla" x1="330" y1="142" x2="330" y2="386"></line>
+            <line class="regla" x1="325" y1="142" x2="335" y2="142"></line>
+            <line class="regla" x1="325" y1="162" x2="335" y2="162"></line>
+            <line class="regla" x1="325" y1="182" x2="335" y2="182"></line>
+            <line class="regla" x1="325" y1="202" x2="335" y2="202"></line>
+            <line class="regla" x1="325" y1="222" x2="335" y2="222"></line>
+            <text class="txt-count" x="338" y="146">5</text>
+            <text class="txt-count" x="338" y="166">4</text>
+            <text class="txt-count" x="338" y="186">3</text>
+            <text class="txt-count" x="338" y="206">2</text>
+            <text class="txt-count" x="338" y="226">1</text>
+          </g>
+          <text id="rotulo-externa" class="txt-rot" x="14" y="408">Capa más externa: —</text>
+          <text id="rotulo-esquema" class="txt-rot" x="14" y="428">Esquema de conteo: no son órbitas ni están a escala.</text>
+        </g>
+        <g id="diagrama">
+          <text id="diagrama-titulo" class="txt-eje" x="372" y="20">Orden de llenado (n+ℓ)</text>
+          <g id="sub-1">
+            <rect id="sub-1-caja" class="sub-caja" x="372" y="34" width="176" height="30" rx="6"></rect>
+            <text id="sub-1-label" class="txt-sub" x="380" y="54">1s (1)</text>
+            <rect class="sub-orb-track" x="444.8" y="43" width="64.4" height="12" rx="2"></rect>
+            <rect id="sub-1-e-1" class="sub-orb-e" x="445.8" y="43" width="62.4" height="0"></rect>
+            <text id="sub-1-count" class="txt-count" x="544" y="54" text-anchor="end">0/2</text>
+          </g>
+          <g id="sub-2">
+            <rect id="sub-2-caja" class="sub-caja" x="372" y="75" width="176" height="30" rx="6"></rect>
+            <text id="sub-2-label" class="txt-sub" x="380" y="95">2s (2)</text>
+            <rect class="sub-orb-track" x="444.8" y="84" width="64.4" height="12" rx="2"></rect>
+            <rect id="sub-2-e-1" class="sub-orb-e" x="445.8" y="84" width="62.4" height="0"></rect>
+            <text id="sub-2-count" class="txt-count" x="544" y="95" text-anchor="end">0/2</text>
+          </g>
+          <g id="sub-3">
+            <rect id="sub-3-caja" class="sub-caja" x="372" y="116" width="176" height="30" rx="6"></rect>
+            <text id="sub-3-label" class="txt-sub" x="380" y="136">2p (3)</text>
+            <rect class="sub-orb-track" x="444.8" y="125" width="20.4" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="466.8" y="125" width="20.4" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="488.8" y="125" width="20.4" height="12" rx="2"></rect>
+            <rect id="sub-3-e-1" class="sub-orb-e" x="445.8" y="125" width="18.4" height="0"></rect>
+            <rect id="sub-3-e-2" class="sub-orb-e" x="467.8" y="125" width="18.4" height="0"></rect>
+            <rect id="sub-3-e-3" class="sub-orb-e" x="489.8" y="125" width="18.4" height="0"></rect>
+            <text id="sub-3-count" class="txt-count" x="544" y="136" text-anchor="end">0/6</text>
+          </g>
+          <g id="sub-4">
+            <rect id="sub-4-caja" class="sub-caja" x="372" y="157" width="176" height="30" rx="6"></rect>
+            <text id="sub-4-label" class="txt-sub" x="380" y="177">3s (3)</text>
+            <rect class="sub-orb-track" x="444.8" y="166" width="64.4" height="12" rx="2"></rect>
+            <rect id="sub-4-e-1" class="sub-orb-e" x="445.8" y="166" width="62.4" height="0"></rect>
+            <text id="sub-4-count" class="txt-count" x="544" y="177" text-anchor="end">0/2</text>
+          </g>
+          <g id="sub-5">
+            <rect id="sub-5-caja" class="sub-caja" x="372" y="198" width="176" height="30" rx="6"></rect>
+            <text id="sub-5-label" class="txt-sub" x="380" y="218">3p (4)</text>
+            <rect class="sub-orb-track" x="444.8" y="207" width="20.4" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="466.8" y="207" width="20.4" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="488.8" y="207" width="20.4" height="12" rx="2"></rect>
+            <rect id="sub-5-e-1" class="sub-orb-e" x="445.8" y="207" width="18.4" height="0"></rect>
+            <rect id="sub-5-e-2" class="sub-orb-e" x="467.8" y="207" width="18.4" height="0"></rect>
+            <rect id="sub-5-e-3" class="sub-orb-e" x="489.8" y="207" width="18.4" height="0"></rect>
+            <text id="sub-5-count" class="txt-count" x="544" y="218" text-anchor="end">0/6</text>
+          </g>
+          <g id="sub-6">
+            <rect id="sub-6-caja" class="sub-caja" x="372" y="239" width="176" height="30" rx="6"></rect>
+            <text id="sub-6-label" class="txt-sub" x="380" y="259">4s (4)</text>
+            <rect class="sub-orb-track" x="444.8" y="248" width="64.4" height="12" rx="2"></rect>
+            <rect id="sub-6-e-1" class="sub-orb-e" x="445.8" y="248" width="62.4" height="0"></rect>
+            <text id="sub-6-count" class="txt-count" x="544" y="259" text-anchor="end">0/2</text>
+          </g>
+          <g id="sub-7">
+            <rect id="sub-7-caja" class="sub-caja" x="372" y="280" width="176" height="30" rx="6"></rect>
+            <text id="sub-7-label" class="txt-sub" x="380" y="300">3d (5)</text>
+            <rect class="sub-orb-track" x="444.8" y="289" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="458" y="289" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="471.2" y="289" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="484.4" y="289" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="497.6" y="289" width="11.6" height="12" rx="2"></rect>
+            <rect id="sub-7-e-1" class="sub-orb-e" x="445.8" y="289" width="9.6" height="0"></rect>
+            <rect id="sub-7-e-2" class="sub-orb-e" x="459" y="289" width="9.6" height="0"></rect>
+            <rect id="sub-7-e-3" class="sub-orb-e" x="472.2" y="289" width="9.6" height="0"></rect>
+            <rect id="sub-7-e-4" class="sub-orb-e" x="485.4" y="289" width="9.6" height="0"></rect>
+            <rect id="sub-7-e-5" class="sub-orb-e" x="498.6" y="289" width="9.6" height="0"></rect>
+            <text id="sub-7-count" class="txt-count" x="544" y="300" text-anchor="end">0/10</text>
+          </g>
+          <g id="sub-8">
+            <rect id="sub-8-caja" class="sub-caja" x="372" y="321" width="176" height="30" rx="6"></rect>
+            <text id="sub-8-label" class="txt-sub" x="380" y="341">4p (5)</text>
+            <rect class="sub-orb-track" x="444.8" y="330" width="20.4" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="466.8" y="330" width="20.4" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="488.8" y="330" width="20.4" height="12" rx="2"></rect>
+            <rect id="sub-8-e-1" class="sub-orb-e" x="445.8" y="330" width="18.4" height="0"></rect>
+            <rect id="sub-8-e-2" class="sub-orb-e" x="467.8" y="330" width="18.4" height="0"></rect>
+            <rect id="sub-8-e-3" class="sub-orb-e" x="489.8" y="330" width="18.4" height="0"></rect>
+            <text id="sub-8-count" class="txt-count" x="544" y="341" text-anchor="end">0/6</text>
+          </g>
+          <g id="sub-9">
+            <rect id="sub-9-caja" class="sub-caja" x="372" y="362" width="176" height="30" rx="6"></rect>
+            <text id="sub-9-label" class="txt-sub" x="380" y="382">5s (5)</text>
+            <rect class="sub-orb-track" x="444.8" y="371" width="64.4" height="12" rx="2"></rect>
+            <rect id="sub-9-e-1" class="sub-orb-e" x="445.8" y="371" width="62.4" height="0"></rect>
+            <text id="sub-9-count" class="txt-count" x="544" y="382" text-anchor="end">0/2</text>
+          </g>
+          <g id="sub-10">
+            <rect id="sub-10-caja" class="sub-caja" x="372" y="403" width="176" height="30" rx="6"></rect>
+            <text id="sub-10-label" class="txt-sub" x="380" y="423">4d (6)</text>
+            <rect class="sub-orb-track" x="444.8" y="412" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="458" y="412" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="471.2" y="412" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="484.4" y="412" width="11.6" height="12" rx="2"></rect>
+            <rect class="sub-orb-track" x="497.6" y="412" width="11.6" height="12" rx="2"></rect>
+            <rect id="sub-10-e-1" class="sub-orb-e" x="445.8" y="412" width="9.6" height="0"></rect>
+            <rect id="sub-10-e-2" class="sub-orb-e" x="459" y="412" width="9.6" height="0"></rect>
+            <rect id="sub-10-e-3" class="sub-orb-e" x="472.2" y="412" width="9.6" height="0"></rect>
+            <rect id="sub-10-e-4" class="sub-orb-e" x="485.4" y="412" width="9.6" height="0"></rect>
+            <rect id="sub-10-e-5" class="sub-orb-e" x="498.6" y="412" width="9.6" height="0"></rect>
+            <text id="sub-10-count" class="txt-count" x="544" y="423" text-anchor="end">0/10</text>
+          </g>
+          <text id="diagrama-nota" class="txt-rot" x="372" y="452">No es escala de energía.</text>
+        </g>
+      </svg>
+      <figcaption id="escena-resumen">Izquierda: capas concéntricas con el número de electrones de cada capa
+        (las etiquetas, apiladas sobre el átomo, van de fuera hacia dentro: O, N, M, L, K). La regla de al lado del
+        átomo marca n, el número de capa: 1 = K, 2 = L, 3 = M, 4 = N, 5 = O. Derecha: orden de
+        llenado de los subniveles; el número entre paréntesis de cada fila es n+ℓ y el diagrama se llena de arriba
+        abajo siguiendo ese número. Cada cajita es un orbital y su altura dice cuántos electrones hay en él
+        (media altura = 1 electrón, altura completa = 2 apareados). Las capas no están a escala de radios.
+        Resumen numérico completo en «Ver datos».</figcaption>
+    </figure>
+
+    <figure class="panel">
+      <svg id="grafica" class="grafica" viewBox="0 0 560 262" role="img" aria-describedby="grafica-resumen"
+           aria-label="Curva de energía de ionización frente al número atómico.">
+        <g id="rejilla">
+          <line class="rejilla" x1="48" y1="206" x2="540" y2="206"></line>
+          <line class="rejilla" x1="48" y1="169.6" x2="540" y2="169.6"></line>
+          <line class="rejilla" x1="48" y1="133.2" x2="540" y2="133.2"></line>
+          <line class="rejilla" x1="48" y1="96.8" x2="540" y2="96.8"></line>
+          <line class="rejilla" x1="48" y1="60.4" x2="540" y2="60.4"></line>
+          <line class="rejilla" x1="48" y1="24" x2="540" y2="24"></line>
+          <text class="txt-eje" x="42" y="210" text-anchor="end">0</text>
+          <text class="txt-eje" x="42" y="173.6" text-anchor="end">5</text>
+          <text class="txt-eje" x="42" y="137.2" text-anchor="end">10</text>
+          <text class="txt-eje" x="42" y="100.8" text-anchor="end">15</text>
+          <text class="txt-eje" x="42" y="64.4" text-anchor="end">20</text>
+          <text class="txt-eje" x="42" y="28" text-anchor="end">25</text>
+          <line class="separador" x1="69.1" y1="24" x2="69.1" y2="206"></line>
+          <line class="separador" x1="181.5" y1="24" x2="181.5" y2="206"></line>
+          <line class="separador" x1="294.1" y1="24" x2="294.1" y2="206"></line>
+          <text class="txt-eje" x="48" y="222">1</text>
+          <text class="txt-eje" x="174.5" y="222" text-anchor="middle">10</text>
+          <text class="txt-eje" x="315.2" y="222" text-anchor="middle">20</text>
+          <text class="txt-eje" x="455.9" y="222" text-anchor="middle">30</text>
+          <text class="txt-eje" x="540" y="222" text-anchor="end">36</text>
+          <text class="txt-eje" x="125.3" y="240" text-anchor="middle">periodo 2</text>
+          <text class="txt-eje" x="238.4" y="240" text-anchor="middle">periodo 3</text>
+          <text class="txt-eje" x="421.9" y="240" text-anchor="middle">periodo 4</text>
+          <text class="txt-eje" x="48" y="14">I₁ (eV)</text>
+          <text class="txt-eje" x="540" y="14" text-anchor="end">curva: I₁ del átomo neutro</text>
+          <text class="txt-eje" x="294" y="256" text-anchor="middle">número atómico Z</text>
+        </g>
+        <polyline id="curva-i1" class="curva" points=""></polyline>
+        <circle id="p-1" class="punto-dato" cx="48" cy="206" r="2.5"></circle>
+        <circle id="p-2" class="punto-dato" cx="62.1" cy="206" r="2.5"></circle>
+        <circle id="p-3" class="punto-dato" cx="76.1" cy="206" r="2.5"></circle>
+        <circle id="p-4" class="punto-dato" cx="90.2" cy="206" r="2.5"></circle>
+        <circle id="p-5" class="punto-dato" cx="104.2" cy="206" r="2.5"></circle>
+        <circle id="p-6" class="punto-dato" cx="118.3" cy="206" r="2.5"></circle>
+        <circle id="p-7" class="punto-dato" cx="132.3" cy="206" r="2.5"></circle>
+        <circle id="p-8" class="punto-dato" cx="146.4" cy="206" r="2.5"></circle>
+        <circle id="p-9" class="punto-dato" cx="160.5" cy="206" r="2.5"></circle>
+        <circle id="p-10" class="punto-dato" cx="174.5" cy="206" r="2.5"></circle>
+        <circle id="p-11" class="punto-dato" cx="188.6" cy="206" r="2.5"></circle>
+        <circle id="p-12" class="punto-dato" cx="202.6" cy="206" r="2.5"></circle>
+        <circle id="p-13" class="punto-dato" cx="216.7" cy="206" r="2.5"></circle>
+        <circle id="p-14" class="punto-dato" cx="230.7" cy="206" r="2.5"></circle>
+        <circle id="p-15" class="punto-dato" cx="244.8" cy="206" r="2.5"></circle>
+        <circle id="p-16" class="punto-dato" cx="258.9" cy="206" r="2.5"></circle>
+        <circle id="p-17" class="punto-dato" cx="272.9" cy="206" r="2.5"></circle>
+        <circle id="p-18" class="punto-dato" cx="287" cy="206" r="2.5"></circle>
+        <circle id="p-19" class="punto-dato" cx="301" cy="206" r="2.5"></circle>
+        <circle id="p-20" class="punto-dato" cx="315.1" cy="206" r="2.5"></circle>
+        <circle id="p-21" class="punto-dato" cx="329.1" cy="206" r="2.5"></circle>
+        <circle id="p-22" class="punto-dato" cx="343.2" cy="206" r="2.5"></circle>
+        <circle id="p-23" class="punto-dato" cx="357.3" cy="206" r="2.5"></circle>
+        <circle id="p-24" class="punto-dato" cx="371.3" cy="206" r="2.5"></circle>
+        <circle id="p-25" class="punto-dato" cx="385.4" cy="206" r="2.5"></circle>
+        <circle id="p-26" class="punto-dato" cx="399.4" cy="206" r="2.5"></circle>
+        <circle id="p-27" class="punto-dato" cx="413.5" cy="206" r="2.5"></circle>
+        <circle id="p-28" class="punto-dato" cx="427.5" cy="206" r="2.5"></circle>
+        <circle id="p-29" class="punto-dato" cx="441.6" cy="206" r="2.5"></circle>
+        <circle id="p-30" class="punto-dato" cx="455.7" cy="206" r="2.5"></circle>
+        <circle id="p-31" class="punto-dato" cx="469.7" cy="206" r="2.5"></circle>
+        <circle id="p-32" class="punto-dato" cx="483.8" cy="206" r="2.5"></circle>
+        <circle id="p-33" class="punto-dato" cx="497.8" cy="206" r="2.5"></circle>
+        <circle id="p-34" class="punto-dato" cx="511.9" cy="206" r="2.5"></circle>
+        <circle id="p-35" class="punto-dato" cx="525.9" cy="206" r="2.5"></circle>
+        <circle id="p-36" class="punto-dato" cx="540" cy="206" r="2.5"></circle>
+        <line id="linea-z" class="actual" x1="272.9" y1="24" x2="272.9" y2="206"></line>
+        <line id="casing-umbral" class="casing" x1="48" y1="206" x2="540" y2="206" opacity="0"></line>
+        <line id="linea-umbral" class="umbral" x1="48" y1="206" x2="540" y2="206" opacity="0"></line>
+        <text id="rotulo-umbral" class="txt-umbral halo" x="52" y="218" opacity="0">umbral</text>
+        <line id="casing-foton" class="casing" x1="48" y1="206" x2="540" y2="206" opacity="0"></line>
+        <line id="linea-foton" class="foton" x1="48" y1="206" x2="540" y2="206" opacity="0"></line>
+        <text id="rotulo-foton" class="txt-punto halo" x="52" y="200" opacity="0">fotón 0 eV</text>
+        <line id="marca-delta" class="delta" x1="286.9" y1="206" x2="286.9" y2="206" opacity="0"></line>
+        <text id="rotulo-delta" class="txt-delta halo" x="292.9" y="200" opacity="0">Δ 0</text>
+        <circle id="punto-casing" class="punto-casing" cx="272.9" cy="111.8" r="9"></circle>
+        <circle id="punto-actual" class="punto" cx="272.9" cy="111.8" r="6"></circle>
+        <text id="rotulo-punto" class="txt-punto halo" x="272.9" y="100" text-anchor="middle">Cl 12,97</text>
+      </svg>
+      <figcaption id="grafica-resumen">Energía mínima para arrancar un electrón a un átomo <strong>neutro</strong>
+        (experimental, eV) según Z: cada punto de la curva es un elemento. La línea discontinua marca la energía
+        del fotón y la punteada, el umbral efectivo del átomo actual; la barra vertical y su rótulo «Δ» marcan la
+        diferencia entre ambas. En este eje 1 eV ≈ 7,3 px, así que cuando la barra se ve más larga de lo que
+        corresponde es porque la diferencia es muy pequeña y se amplía para que se pueda ver. Valores exactos en
+        «Ver datos».</figcaption>
+    </figure>
+  </div>
+
+  <div class="columna">
+    <section class="panel" aria-label="Controles de la simulación">
+      <h2>Controles</h2>
+      <div class="controles">
+        <div class="control">
+          <label for="modo">Modo de lectura (no es una variable física)</label>
+          <select id="modo" aria-describedby="modo-ayuda">
+            <option value="0" selected>Capas (4º ESO)</option>
+            <option value="1">Subniveles (1º Bachillerato)</option>
+          </select>
+          <p class="ayuda" id="modo-ayuda">El modo solo cambia qué lecturas y qué diagrama se muestran; el átomo no
+            cambia. Las consignas y los retos marcados <span class="etiqueta">subniveles</span> necesitan el modo
+            Subniveles: cámbialo aquí.</p>
+        </div>
+
+        <div class="control">
+          <label for="numero-atomico">Número atómico Z (protones del núcleo)</label>
+          <div class="fila">
+            <input type="range" id="numero-atomico" min="1" max="36" step="1" value="17"
+                   aria-describedby="numero-atomico-ayuda" aria-valuetext="17, cloro">
+            <output class="valor" aria-live="off" id="val-numero-atomico" for="numero-atomico" data-unidad="—">17</output>
+          </div>
+          <p class="ayuda" id="numero-atomico-ayuda">Entero de 1 a 36. Cambia el elemento: hidrógeno → kriptón.</p>
+        </div>
+
+        <div class="control">
+          <label for="carga-ionica">Carga iónica q (electrones quitados o añadidos)</label>
+          <div class="fila">
+            <input type="range" id="carga-ionica" min="-3" max="3" step="1" value="0"
+                   aria-describedby="carga-ionica-ayuda" aria-valuetext="0, átomo neutro">
+            <output class="valor" aria-live="off" id="val-carga-ionica" for="carga-ionica" data-unidad="e">0</output>
+          </div>
+          <p class="ayuda" id="carga-ionica-ayuda">Entero de −3 a +3, con el máximo real limitado por Z: un átomo no puede perder más electrones de los que tiene.</p>
+        </div>
+
+        <div class="control">
+          <label for="energia-foton">Energía del fotón que incide</label>
+          <div class="fila">
+            <input type="range" id="energia-foton" min="0" max="25" step="0.1" value="0"
+                   aria-describedby="energia-foton-ayuda" aria-valuetext="0 eV, sin fotón">
+            <output class="valor" aria-live="off" id="val-energia-foton" for="energia-foton" data-unidad="eV">0,0</output>
+          </div>
+          <p class="ayuda" id="energia-foton-ayuda">De 0 a 25 eV con paso 0,1 eV. El eV (electronvoltio) es la unidad
+            de energía de los átomos: un fotón de luz visible tiene 1,65–3,10 eV. Umbral efectivo del átomo actual:
+            <span id="ayuda-umbral">13,0 eV · I₁ = 12,97 eV</span>.</p>
+        </div>
+
+        <div class="acciones">
+          <button id="btn-llenar" type="button" aria-pressed="false" aria-keyshortcuts="Space"
+                  aria-label="Iniciar llenado: los electrones aparecen uno a uno">Iniciar llenado</button>
+          <button id="btn-paso" type="button" aria-keyshortcuts="p"
+                  aria-label="+1 electrón: añade un electrón siguiendo el orden de llenado">+1 electrón</button>
+          <button id="btn-reiniciar" type="button" aria-keyshortcuts="r"
+                  aria-label="Reiniciar: vuelve a los valores iniciales">Reiniciar</button>
+        </div>
+        <p class="ayuda">«Iniciar llenado» añade electrones de uno en uno siguiendo el orden (n+ℓ); «+1 electrón» avanza un paso, pensado para cuando prefieres ir sin animación.</p>
+      </div>
+    </section>
+
+    <p id="estado" role="status" aria-live="polite">Ajusta Z, la carga y la energía del fotón con los deslizadores. «Iniciar llenado» hace aparecer los electrones uno a uno y «+1 electrón» avanza de uno en uno.</p>
+
+    <section class="panel" aria-label="Lecturas de la simulación">
+      <h2>Lecturas</h2>
+      <h3 class="grupo">La especie</h3>
+      <dl class="lecturas">
+        <div>
+          <dt>Especie (elemento y carga)</dt>
+          <dd><output aria-live="off" data-observable="especie" data-unidad="—" id="lect-elemento">cloro (Cl)</output></dd>
+        </div>
+        <div>
+          <dt>Protones</dt>
+          <dd><output aria-live="off" data-observable="protones" data-unidad="—" id="lect-protones">17</output><span class="unidad">p+</span></dd>
+        </div>
+        <div>
+          <dt>Electrones</dt>
+          <dd><output aria-live="off" data-observable="electrones" data-unidad="—" id="lect-electrones">17</output><span class="unidad">e−</span></dd>
+        </div>
+        <div>
+          <dt>Carga neta (protones menos electrones)</dt>
+          <dd><output aria-live="off" data-observable="carga neta" data-unidad="e" id="lect-carga">0</output><span class="unidad">e</span></dd>
+        </div>
+      </dl>
+      <h3 class="grupo">Cómo se reparten los electrones</h3>
+      <dl class="lecturas">
+        <div>
+          <dt>Electrones por capa (K, L, M, N, O)</dt>
+          <dd><output aria-live="off" data-observable="electrones por capa" data-unidad="—" id="lect-capas">2, 8, 7</output></dd>
+        </div>
+        <div id="fila-externa">
+          <dt>Electrones de la capa más externa</dt>
+          <dd><output aria-live="off" data-observable="electrones de la capa más externa" data-unidad="—" id="lect-externa">7</output></dd>
+        </div>
+        <div id="fila-config" hidden>
+          <dt>Configuración electrónica</dt>
+          <dd><output aria-live="off" data-observable="configuración electrónica" data-unidad="—" id="lect-config">[Ne]3s²3p⁵</output></dd>
+        </div>
+        <div id="fila-config-completa" hidden>
+          <dt>Configuración por subniveles (completa)</dt>
+          <dd><output aria-live="off" data-observable="configuración por subniveles" data-unidad="—" id="lect-config-completa">1s² 2s² 2p⁶ 3s² 3p⁵</output></dd>
+        </div>
+        <div id="fila-valencia" hidden>
+          <dt>Electrones de valencia (en el bloque d: fuera del gas noble)</dt>
+          <dd><output aria-live="off" data-observable="electrones de valencia" data-unidad="—" id="lect-valencia">7</output></dd>
+        </div>
+        <div id="fila-desapareados" hidden>
+          <dt>Electrones desapareados (los que van solos a su orbital: regla de Hund)</dt>
+          <dd><output aria-live="off" data-observable="electrones desapareados" data-unidad="—" id="lect-desapareados">1</output></dd>
+        </div>
+      </dl>
+      <h3 class="grupo">El fotón que incide</h3>
+      <dl class="lecturas">
+        <div id="fila-i1" hidden>
+          <dt>Energía de ionización I₁ (del átomo neutro, no del ion)</dt>
+          <dd><output aria-live="off" data-observable="energía de ionización I1" data-unidad="eV" id="lect-i1">12,97</output><span class="unidad">eV</span></dd>
+        </div>
+        <div>
+          <dt>Umbral efectivo del fotón (primer múltiplo de 0,1 eV ≥ I₁)</dt>
+          <dd><output aria-live="off" data-observable="umbral efectivo" data-unidad="eV" id="lect-umbral">13,0</output><span class="unidad" id="unidad-umbral">eV</span></dd>
+        </div>
+        <div>
+          <dt>Efecto del fotón</dt>
+          <dd><output aria-live="off" data-observable="efecto del fotón" data-unidad="—" id="lect-efecto">sin fotón</output></dd>
+        </div>
+        <div>
+          <dt>Energía cinética del electrón eyectado</dt>
+          <dd><output aria-live="off" data-observable="energía cinética del electrón eyectado" data-unidad="eV" id="lect-ec">—</output><span class="unidad" id="unidad-ec">eV</span></dd>
+        </div>
+        <div>
+          <dt>Longitud de onda del fotón λ</dt>
+          <dd><output aria-live="off" data-observable="longitud de onda del fotón" data-unidad="nm" id="lect-lambda">—</output><span class="unidad" id="unidad-lambda">nm</span></dd>
+        </div>
+        <div>
+          <dt>Especie resultante tras el fotón</dt>
+          <dd><output aria-live="off" data-observable="especie resultante tras el fotón" data-unidad="—" id="lect-resultante">—</output></dd>
+        </div>
+      </dl>
+      <div class="acciones" style="margin-top:.7rem">
+        <button id="btn-datos" type="button" aria-expanded="false" aria-controls="datos" aria-keyshortcuts="d"
+                aria-label="Ver datos: tabla con los 36 elementos">Ver datos</button>
+        <button id="btn-copiar" type="button" aria-label="Copiar datos: los 36 elementos en columnas para pegar en una hoja de cálculo">Copiar datos</button>
+        <button id="btn-fijar" type="button" aria-label="Fijar especie: guarda la especie que estás viendo en la tabla de comparación">Fijar especie</button>
+      </div>
+      <div id="datos" hidden>
+        <table id="tabla-datos">
+          <caption>Tabla de referencia: úsala para <strong>comprobar</strong> lo que has predicho, no para buscarlo
+            antes de mirar el átomo. Elementos Z = 1…36 con la carga iónica elegida. I₁ y el umbral corresponden al
+            átomo neutro. El umbral es el primer múltiplo de 0,1 eV que es ≥ I₁, así que dos elementos pueden
+            compartir umbral y longitud de onda: hierro 7,90 eV y cobalto 7,88 eV dan los dos 7,9 eV.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Z</th>
+              <th scope="col">Símbolo</th>
+              <th scope="col">Electrones</th>
+              <th scope="col">Capas</th>
+              <th scope="col">I₁ (eV)</th>
+              <th scope="col">Umbral (eV)</th>
+              <th scope="col">λ umbral (nm)</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-cuerpo"></tbody>
+        </table>
+        <p class="nota">La última cifra de «Capas» es la capa más externa. La λ de la tabla usa el umbral
+          redondeado: potasio 281,8 nm y sodio 238,5 nm. Con la energía
+          exacta serían 285,7 nm y 241,2 nm. Todas las λ de esta tabla están por debajo de 400 nm, es decir en el
+          ultravioleta: la luz visible (400–750 nm, 1,65–3,10 eV) no arranca electrones a ninguno de estos átomos.</p>
+        <p id="aviso-copiar" class="nota" role="status" aria-live="polite">Datos listados para copiar o exportar.</p>
+      </div>
+      <div id="comparacion" hidden>
+        <h3 class="grupo">Especies fijadas para comparar</h3>
+        <table id="tabla-comparar">
+          <caption>Las especies que has fijado, en el orden en que las añadiste. Compara sin tener que estar moviendo
+            los deslizadores de nuevo.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Especie</th>
+              <th scope="col">Z</th>
+              <th scope="col">Electrones</th>
+              <th scope="col">Capas</th>
+              <th scope="col">Configuración</th>
+              <th scope="col">I₁ (eV)</th>
+              <th scope="col">Umbral (eV)</th>
+              <th scope="col">λ umbral (nm)</th>
+            </tr>
+          </thead>
+          <tbody id="comparar-cuerpo"></tbody>
+        </table>
+        <div class="acciones" style="margin-top:.5rem">
+          <button id="btn-copiar-comparar" type="button" aria-label="Copiar comparación: las especies fijadas en columnas para pegar en una hoja de cálculo">Copiar comparación</button>
+          <button id="btn-vaciar-comparar" type="button" aria-label="Vaciar comparación: borra las especies fijadas">Vaciar comparación</button>
+        </div>
+        <p id="aviso-comparar" class="nota" role="status" aria-live="polite">Fija una especie para guardarla y poder compararla con otra.</p>
+      </div>
+    </section>
+  </div>
+
+<section class="panel bloque" aria-labelledby="observar-titulo">
+  <h2 id="observar-titulo">Qué observar</h2>
+  <h3 class="grupo">Basta con el modo Capas (4º ESO)</h3>
+  <ol class="preguntas">
+    <li><strong>Empieza por Z = 11 y súbelo hasta 19, despacio.</strong> Mira «Electrones por capa»: ¿la tercera
+      capa (M) llega a 18 electrones antes de que aparezca la cuarta? Anota en qué Z empieza la capa N y cuántos
+      electrones tiene M entonces.</li>
+    <li><strong>Con Z = 11 mueve la carga iónica de −1 a +2.</strong> ¿Qué cambia, «Protones» o «Electrones»?
+      ¿Cómo se relacionan los dos con «Carga neta»?</li>
+    <li><strong>Mira la curva entre Z = 12 y 13, y entre Z = 15 y 16.</strong> Baja aunque Z suba. Explica qué
+      cambia en «Electrones de la capa más externa» para que cueste menos arrancar el electrón.</li>
+    <li><strong>Con Z = 11 busca el umbral a mano.</strong> Empieza en 5,0 eV y sube de 1 en 1 hasta que la lectura
+      cambie a «arranca un electrón»; baja otra vez y afina de 0,1 en 0,1 solo entre los dos últimos valores.
+      Compara con la línea punteada «umbral» de la gráfica. Repite con Z = 1 y explica por qué allí hay saltos y
+      huecos en vez de un umbral único.</li>
+  </ol>
+  <h3 class="grupo">Necesitan el modo Subniveles (1º Bachillerato)</h3>
+  <ol class="preguntas" start="5">
+    <li><strong>Compara Z = 19 y Z = 21.</strong> El potasio tiene capas 2, 8, 8, 1 y el escandio 2, 8, 9, 2:
+      la tercera capa ha empezado a llenarse por encima de la cuarta. Explica por qué el diagrama
+      «Orden de llenado (n+ℓ)» lo predice.</li>
+    <li><strong>Busca Z = 24 (cromo) y Z = 29 (cobre).</strong> ¿Coincide su configuración con el orden estricto
+      del diagrama? Compara con Z = 23 y Z = 30, que sí siguen el orden esperado.</li>
+    <li><strong>Pon Z = 26 (hierro) y mueve la carga iónica de 0 a +3.</strong> ¿Qué subnivel se vacía primero,
+      el 4s o el 3d? Comprueba en «Electrones por capa» las capas 2, 8, 14 de Fe²⁺ y que Fe³⁺ queda con 3d⁵,
+      la mitad de un subnivel lleno (5 de 10).
+      La simulación no modela la estabilidad real de los iones: arrancar ese tercer electrón costaría 30,65 eV,
+      no los 7,90 eV que marca la lectura para el átomo neutro.</li>
+  </ol>
+  <h2 style="margin-top:.9rem">Retos</h2>
+  <p class="nota">Los retos marcados <span class="etiqueta">subniveles</span> necesitan cambiar el modo de lectura;
+    los marcados <span class="etiqueta">para casa</span> se salen de los 25 minutos de clase.</p>
+  <ul class="lista">
+    <li>Encuentra todos los Z de 1 a 36 cuya capa más externa tiene exactamente 1 electrón y explica por qué
+      no son solo los alcalinos.</li>
+    <li><span class="etiqueta">subniveles</span> Con la carga iónica construye la serie N³⁻, O²⁻, F⁻, Na⁺, Mg²⁺ y
+      Al³⁺: todas tienen 10 electrones y capas 2, 8 como el neón. ¿Por qué el sodio se ioniza con 5,14 eV y el neón
+      necesita 21,56 eV si los dos tienen el mismo número de electrones? Puedes guardar cada especie con el botón
+      «Fijar especie» y tenerlas todas en la misma tabla.</li>
+    <li><span class="etiqueta">subniveles</span> Antes de mover la carga iónica, escribe en un papel qué esperas
+      obtener para Fe³⁺, S²⁻ y Cu⁺. Después comprueba si has acertado con la lectura «Configuración completa».</li>
+    <li>Con Z = 20 y carga −2 obtienes Ca²⁻ con capas 2, 8, 10, 2 en «Electrones por capa». ¿Por qué el electrón
+      extra no va a la capa N? Compara con K⁻ (2, 8, 8, 2).</li>
+    <li>Con Z = 11 y un fotón de 20 eV, ¿cuántos electrones se han arrancado? La lectura da Na⁺, con uno menos.
+      Explica por qué no son cuatro, si el fotón tiene casi cuatro veces la energía del umbral.</li>
+    <li><span class="etiqueta">para casa</span> Con Z = 17 y fotón de 13,0 eV calcula la energía cinética del
+      electrón eyectado y la especie resultante. ¿Por qué el umbral no es exactamente 12,97 eV?</li>
+    <li><span class="etiqueta">para casa</span> Con Z = 1 mira la longitud de onda de los dos saltos reconocidos:
+      10,20 eV y 12,09 eV. Calcula λ y compárala con la luz visible (400–750 nm, 1,65–3,10 eV). ¿Por qué un gas de
+      hidrógeno no absorbe luz visible?
+      Y con el umbral más bajo de toda la tabla (potasio, 4,4 eV) ¿en qué región del espectro estás?</li>
+    <li><span class="etiqueta">para casa</span> Explica por qué los valores de esta simulación no sirven para
+      predecir el punto de ebullición del sodio metálico ni por qué un trozo de sodio flota en el agua.</li>
+  </ul>
+</section>
+
+<section class="panel bloque" aria-labelledby="supuestos-titulo">
+  <h2 id="supuestos-titulo">Supuestos del modelo (aproximaciones)</h2>
+  <ul class="lista">
+    <li>Las capas se dibujan como circunferencias concéntricas con separación fija entre ellas: es un esquema de
+      conteo, no órbitas ni trayectorias, y los radios no guardan la proporción de los tamaños reales.</li>
+    <li>El diagrama de la derecha muestra el <em>orden de llenado</em> por (n+ℓ), no una escala vertical de energía.</li>
+    <li>Una vez ocupado, el subnivel 3d queda por debajo del 4s: por eso los cationes pierden primero los electrones 4s.
+      La regla del modelo es que se vacía primero el subnivel <em>ocupado</em> con (n, ℓ) más grande, así que
+      Fe → Fe²⁺ → Fe³⁺ es [Ar]3d⁶4s² → [Ar]3d⁶ → [Ar]3d⁵, y nunca [Ar]4s¹3d².</li>
+    <li>Las energías de ionización son valores experimentales del <strong>átomo neutro</strong>. Para un ion no se
+      modela la fotoionización: la lectura lo avisa como «umbral del ion: no modelado». En la realidad arrancar un
+      segundo electrón cuesta mucho más: Na⁺ → Na²⁺ vale 47,3 eV frente a los 5,14 eV del sodio neutro, y
+      O⁺ → O²⁺ vale 35,1 eV frente a los 13,6 eV del oxígeno neutro.</li>
+    <li><strong>Umbral efectivo</strong> significa el primer múltiplo de 0,1 eV que es igual o mayor que I₁, porque el
+      deslizador de energía tiene paso 0,1 eV. Nunca está por debajo de I₁ y como máximo lo supera en 0,09 eV
+      (sodio: I₁ = 5,14 y umbral = 5,2). La energía cinética del electrón eyectado se calcula con I₁, no con el umbral,
+      así que puede ser algo menor que «energía del fotón − umbral»: con sodio y 5,2 eV son 0,06 eV, no 0,10 eV.</li>
+    <li>Un fotón arranca un solo electrón: la energía no se acumula entre fotones ni entre clics. Con energía por
+      encima del umbral la simulación ioniza una vez y la especie resultante es el ion con un electrón menos.</li>
+    <li>Solo se recogen las excepciones tabuladas cromo y cobre; otras excepciones de la tabla real no se incluyen.</li>
+    <li>No hay isótopos ni estructura nuclear: el núcleo se caracteriza solo por Z.</li>
+    <li>Se estudian átomos e iones aislados. Los aniones de moléculas (por ejemplo SO₄²⁻) no existen aquí; si se usan
+      en clase, el conteo de electrones es una convención, no una configuración real.</li>
+    <li>Combinaciones como H³⁻ o Ca²⁻ no son especies estables: se presentan como ejercicio de conteo y por eso la
+      carga iónica no puede superar el número de electrones disponibles (q ≤ Z).</li>
+    <li>El electrón extra de un anión completa primero el subnivel ocupado con (n, ℓ) más grande y después sigue el
+      orden (n+ℓ): por eso aparecen 5s y 4d y la capa O puede tener 1 o 2 electrones. Máximo del dibujo: 39 electrones.</li>
+    <li>La capacidad teórica de una capa es 2n², pero el diagrama se detiene en 4d: por eso la capa N llega como
+      máximo a 18 electrones y nunca se ve llena (32), y la capa O se usa solo para los dos primeros electrones.</li>
+    <li>La lectura «Electrones de valencia» es un conteo para el ejercicio. En el bloque d cuenta electrones fuera del
+      gas noble (Fe 8, Fe²⁺ 6, Fe³⁺ 5), que no son los estados de oxidación que se usan en química. Que la capa más
+      externa tenga 8 electrones es una regularidad de los elementos representativos, no una ley: el helio se queda
+      con 2 y los del bloque d no siguen ese patrón.</li>
+    <li>No se modelan espectros de absorción ni de emisión completos. Con hidrógeno solo se reconocen los saltos
+      1→2 y 1→3; por encima hay saltos reales que la simulación declara «salto real no modelado» y en el resto del
+      rango declara «no hay nivel a esa energía». Esos niveles salen de Eₙ = −13,6/n² eV, que solo vale para el
+      hidrógeno: en los demás átomos la energía de cada electrón no sigue esa fórmula. Por debajo del umbral el fotón
+      sí puede absorberse para subir de nivel sin arrancar el electrón: el sodio absorbe luz amarilla de 2,11 eV
+      (589 nm). Aquí esos saltos solo se modelan en el hidrógeno.</li>
+  </ul>
+</section>
+</main>
+
+<footer class="pie">
+  <p>Energías de ionización I₁: valores experimentales tabulados del átomo neutro, Z = 1…36 (eV).
+    Longitud de onda λ (nm) ≈ 1240 / E (eV). Orden de llenado por (n+ℓ) con las excepciones de cromo y cobre.</p>
+  <p>Niveles del hidrógeno con Eₙ = −13,6/n² eV: n = 1 vale −13,60, n = 2 vale −3,40 y n = 3 vale −1,51, así que el
+    salto 1→2 necesita 10,20 eV y el 1→3 necesita 12,09 eV. Entre 12,70 y 13,50 eV hay saltos reales (n = 4…10) que
+    la simulación no modela.</p>
+  <p>Atajos de teclado (se usan cuando no hay ningún campo, deslizador o botón enfocado): Espacio iniciar o pausar el
+    llenado, P añadir un electrón, R reiniciar, T modo oscuro, D ver datos, M menos movimiento.</p>
+  <p class="nota">Modelo simplificado con fines didácticos: describe el conteo de electrones y las energías de
+    ionización del átomo neutro, no la estructura fina, los espectros ni la estabilidad real de todas las especies.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict'
+
+  const raiz = document.documentElement
+  const el = (id) => document.getElementById(id)
+
+  /* ------------------------------------------------------------------
+     Preferencias del usuario
+     ------------------------------------------------------------------ */
+  const CLAVE = 'sim:configuracion-electronica:'
+
+  function leerPref(nombre, porDefecto) {
+    try {
+      const v = window.localStorage.getItem(CLAVE + nombre)
+      return v === null ? porDefecto : v
+    } catch (error) {
+      return porDefecto
+    }
+  }
+
+  function guardarPref(nombre, valor) {
+    try {
+      window.localStorage.setItem(CLAVE + nombre, valor)
+    } catch (error) {
+      /* almacenamiento no disponible: la simulación sigue funcionando */
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Utilidades numéricas y de texto
+     ------------------------------------------------------------------ */
+  function numero(valor, porDefecto) {
+    const n = Number(valor)
+    return Number.isFinite(n) ? n : porDefecto
+  }
+
+  function limitar(v, min, max) {
+    if (!Number.isFinite(v)) return min
+    return Math.min(max, Math.max(min, v))
+  }
+
+  function fmt(n, decimales) {
+    if (!Number.isFinite(n)) return '—'
+    return n.toFixed(decimales).replace('.', ',')
+  }
+
+  const SUPER = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
+
+  function superTxt(n) {
+    return String(n).split('').map((c) => SUPER[c] || c).join('')
+  }
+
+  /* Carga escrita como en química: H⁺, Fe²⁺, S²⁻ (el 1 no se escribe). */
+  function cargaTxt(q) {
+    const magnitud = Math.abs(q)
+    if (magnitud === 1) return q > 0 ? '⁺' : '⁻'
+    return superTxt(magnitud) + (q > 0 ? '⁺' : '⁻')
+  }
+
+  function texto(elemento, valor) {
+    if (elemento) elemento.textContent = valor
+  }
+
+  function attr(elemento, nombre, valor) {
+    if (elemento) elemento.setAttribute(nombre, valor)
+  }
+
+  function unidad(id, visible) {
+    const nodo = el(id)
+    if (!nodo) return
+    if (visible) nodo.removeAttribute('hidden')
+    else nodo.setAttribute('hidden', '')
+  }
+
+  /* ------------------------------------------------------------------
+     Datos del modelo: elementos y energías de ionización experimentales
+     ------------------------------------------------------------------ */
+  const ELEMENTOS = [
+    null,
+    ['H', 'hidrógeno'], ['He', 'helio'], ['Li', 'litio'], ['Be', 'berilio'], ['B', 'boro'],
+    ['C', 'carbono'], ['N', 'nitrógeno'], ['O', 'oxígeno'], ['F', 'flúor'], ['Ne', 'neón'],
+    ['Na', 'sodio'], ['Mg', 'magnesio'], ['Al', 'aluminio'], ['Si', 'silicio'], ['P', 'fósforo'],
+    ['S', 'azufre'], ['Cl', 'cloro'], ['Ar', 'argón'], ['K', 'potasio'], ['Ca', 'calcio'],
+    ['Sc', 'escandio'], ['Ti', 'titanio'], ['V', 'vanadio'], ['Cr', 'cromo'], ['Mn', 'manganeso'],
+    ['Fe', 'hierro'], ['Co', 'cobalto'], ['Ni', 'níquel'], ['Cu', 'cobre'], ['Zn', 'zinc'],
+    ['Ga', 'galio'], ['Ge', 'germanio'], ['As', 'arsénico'], ['Se', 'selenio'], ['Br', 'bromo'],
+    ['Kr', 'kriptón']
+  ]
+
+  const I1 = [
+    null,
+    13.60, 24.59, 5.39, 9.32, 8.30, 11.27, 14.53, 13.62, 17.42, 21.56,
+    5.14, 7.65, 5.99, 8.15, 10.49, 10.36, 12.97, 15.76, 4.34, 6.11,
+    6.56, 6.83, 6.75, 6.77, 7.43, 7.90, 7.88, 7.64, 7.73, 9.39,
+    6.00, 7.90, 9.79, 9.75, 11.81, 14.00
+  ]
+
+  const Z_MIN = 1
+  const Z_MAX = 36
+  const CARGA_MIN = -3
+  const CARGA_MAX = 3
+  const FOTON_MAX = 25
+  const ELECTRONES_MAX = 39
+
+  /* ------------------------------------------------------------------
+     Modelo (funciones puras): configuración electrónica
+     ------------------------------------------------------------------ */
+  const LETRA = ['s', 'p', 'd', 'f']
+  const ORDEN = [
+    { n: 1, l: 0 }, { n: 2, l: 0 }, { n: 2, l: 1 }, { n: 3, l: 0 }, { n: 3, l: 1 },
+    { n: 4, l: 0 }, { n: 3, l: 2 }, { n: 4, l: 1 }, { n: 5, l: 0 }, { n: 4, l: 2 }
+  ]
+  const GASES = [{ z: 36, s: 'Kr' }, { z: 18, s: 'Ar' }, { z: 10, s: 'Ne' }, { z: 2, s: 'He' }]
+  const NOMBRES_GAS = { 2: 'He', 10: 'Ne', 18: 'Ar', 36: 'Kr' }
+
+  function capacidad(l) {
+    return 2 * (2 * l + 1)
+  }
+
+  function nombreSub(n, l) {
+    return n + LETRA[l]
+  }
+
+  function posOrden(n, l) {
+    for (let i = 0; i < ORDEN.length; i++) {
+      if (ORDEN[i].n === n && ORDEN[i].l === l) return i
+    }
+    return -1
+  }
+
+  function ordenarLlenado(cfg) {
+    return cfg.slice().sort((a, b) => (a.n + a.l) - (b.n + b.l) || a.n - b.n)
+  }
+
+  function buscarSub(cfg, n, l) {
+    for (let i = 0; i < cfg.length; i++) {
+      if (cfg[i].n === n && cfg[i].l === l) return cfg[i]
+    }
+    return null
+  }
+
+  function configNeutra(z) {
+    const cfg = []
+    let resto = z
+    for (let i = 0; i < ORDEN.length && resto > 0; i++) {
+      const s = ORDEN[i]
+      const c = Math.min(capacidad(s.l), resto)
+      cfg.push({ n: s.n, l: s.l, c: c })
+      resto -= c
+    }
+    if (z === 24) {
+      const cuatroS = buscarSub(cfg, 4, 0)
+      const tresD = buscarSub(cfg, 3, 2)
+      if (cuatroS) cuatroS.c = 1
+      if (tresD) tresD.c = 5
+    }
+    if (z === 29) {
+      const cuatroS = buscarSub(cfg, 4, 0)
+      const tresD = buscarSub(cfg, 3, 2)
+      if (cuatroS) cuatroS.c = 1
+      if (tresD) tresD.c = 10
+    }
+    return cfg
+  }
+
+  /* Cationes: se vacía primero el subnivel ocupado con (n, ℓ) más grande. */
+  function quitarElectrones(cfg, q) {
+    const arr = cfg.map((s) => ({ n: s.n, l: s.l, c: s.c }))
+    arr.sort((a, b) => a.n - b.n || a.l - b.l)
+    let pendientes = q
+    for (let i = arr.length - 1; i >= 0 && pendientes > 0; i--) {
+      const c = Math.min(arr[i].c, pendientes)
+      arr[i].c -= c
+      pendientes -= c
+    }
+    return arr.filter((s) => s.c > 0)
+  }
+
+  /* Aniones: se completa el subnivel ocupado con (n, ℓ) más grande y después
+     se continúa el orden (n+ℓ) a partir de ese subnivel. */
+  function anadirElectrones(cfg, k) {
+    const arr = cfg.map((s) => ({ n: s.n, l: s.l, c: s.c }))
+    let ultimo = null
+    for (let i = 0; i < arr.length; i++) {
+      const s = arr[i]
+      if (!ultimo || s.n > ultimo.n || (s.n === ultimo.n && s.l > ultimo.l)) ultimo = s
+    }
+    let pendientes = k
+    if (ultimo && ultimo.c < capacidad(ultimo.l)) {
+      const add = Math.min(capacidad(ultimo.l) - ultimo.c, pendientes)
+      ultimo.c += add
+      pendientes -= add
+    }
+    if (pendientes > 0 && ultimo) {
+      const inicio = posOrden(ultimo.n, ultimo.l)
+      for (let i = inicio + 1; i < ORDEN.length && pendientes > 0; i++) {
+        const s = ORDEN[i]
+        let entrada = buscarSub(arr, s.n, s.l)
+        if (!entrada) {
+          entrada = { n: s.n, l: s.l, c: 0 }
+          arr.push(entrada)
+        }
+        const add = Math.min(capacidad(s.l) - entrada.c, pendientes)
+        entrada.c += add
+        pendientes -= add
+      }
+    }
+    return ordenarLlenado(arr).filter((s) => s.c > 0)
+  }
+
+  function electronesPorCapa(cfg) {
+    const capas = [0, 0, 0, 0, 0, 0]
+    for (let i = 0; i < cfg.length; i++) capas[cfg[i].n] += cfg[i].c
+    return capas
+  }
+
+  function capaMasExterna(capas) {
+    for (let n = 5; n >= 1; n--) {
+      if (capas[n] > 0) return n
+    }
+    return 0
+  }
+
+  function cuentaSub(cfg, n, l) {
+    const s = buscarSub(cfg, n, l)
+    return s ? s.c : 0
+  }
+
+  /* Valencia: (c) capa externa s²p⁶ con d externo parcial → d externo;
+     (a) gas noble o pseudo-gas noble → 8 (2 en la primera capa);
+     (b) resto → s y p de la capa más externa + d de la capa anterior si está parcial. */
+  function electronesDeValencia(cfg, capas) {
+    const n = capaMasExterna(capas)
+    if (n === 0) return 0
+    const s = cuentaSub(cfg, n, 0)
+    const p = cuentaSub(cfg, n, 1)
+    const d = cuentaSub(cfg, n, 2)
+    const dPrev = cuentaSub(cfg, n - 1, 2)
+    if (s === 2 && p === 6) {
+      if (d > 0 && d < 10) return d
+      return 8
+    }
+    if (n === 1 && s === 2) return 2
+    return s + p + (dPrev > 0 && dPrev < 10 ? dPrev : 0)
+  }
+
+  /* Desapareados según la regla de Hund. */
+  function electronesDesapareados(cfg) {
+    let total = 0
+    for (let i = 0; i < cfg.length; i++) {
+      const s = cfg[i]
+      const huecos = 2 * s.l + 1
+      total += s.c <= huecos ? s.c : capacidad(s.l) - s.c
+    }
+    return total
+  }
+
+  function coincideConBase(orden, base) {
+    for (let i = 0; i < base.length; i++) {
+      const s = buscarSub(orden, base[i].n, base[i].l)
+      if (!s || s.c !== base[i].c) return false
+    }
+    let ultima = 0
+    for (let i = 0; i < base.length; i++) ultima = Math.max(ultima, posOrden(base[i].n, base[i].l))
+    for (let i = 0; i < orden.length; i++) {
+      const s = orden[i]
+      if (buscarSub(base, s.n, s.l)) continue
+      if (posOrden(s.n, s.l) <= ultima) return false
+    }
+    return true
+  }
+
+  /* La configuración escrita se ordena por capa (3d antes que 4s); el llenado no. */
+  function porCapaOrden(lista) {
+    return lista.slice().sort((a, b) => (a.n - b.n) || (a.l - b.l))
+  }
+
+  function escribirConfiguracion(cfg, electrones) {
+    if (electrones <= 0) return '—'
+    const orden = ordenarLlenado(cfg)
+    for (let g = 0; g < GASES.length; g++) {
+      const gas = GASES[g]
+      if (electrones < gas.z) continue
+      const base = configNeutra(gas.z)
+      if (!coincideConBase(orden, base)) continue
+      const resto = porCapaOrden(orden.filter((s) => !buscarSub(base, s.n, s.l)))
+      let cadena = '[' + gas.s + ']'
+      for (let i = 0; i < resto.length; i++) cadena += nombreSub(resto[i].n, resto[i].l) + superTxt(resto[i].c)
+      return cadena
+    }
+    return escribirCompleta(orden)
+  }
+
+  function escribirCompleta(cfg) {
+    if (!cfg.length) return '—'
+    return porCapaOrden(ordenarLlenado(cfg))
+      .map((s) => nombreSub(s.n, s.l) + superTxt(s.c))
+      .join(' ')
+  }
+
+  function listaDeElectrones(cfg) {
+    const lista = []
+    const orden = ordenarLlenado(cfg)
+    for (let i = 0; i < orden.length; i++) {
+      const s = orden[i]
+      for (let k = 0; k < s.c; k++) lista.push({ n: s.n, l: s.l })
+    }
+    return lista
+  }
+
+  function umbralEfectivo(i1) {
+    if (!Number.isFinite(i1)) return null
+    return Math.ceil(i1 * 10) / 10
+  }
+
+  /* Estado estructural de la especie (Z, q). */
+  function estadoEspecie(z, q) {
+    const electrones = z - q
+    const neutra = configNeutra(z)
+    let cfg
+    if (electrones <= 0) cfg = []
+    else if (q > 0) cfg = quitarElectrones(neutra, q)
+    else if (q < 0) cfg = anadirElectrones(neutra, -q)
+    else cfg = neutra.map((s) => ({ n: s.n, l: s.l, c: s.c }))
+    const capas = electronesPorCapa(cfg)
+    const nExterna = capaMasExterna(capas)
+    return {
+      z: z,
+      q: q,
+      electrones: Math.max(0, electrones),
+      cfg: cfg,
+      capas: capas,
+      nExterna: nExterna,
+      externas: nExterna > 0 ? capas[nExterna] : 0,
+      valencia: electronesDeValencia(cfg, capas),
+      desapareados: electronesDesapareados(cfg),
+      config: escribirConfiguracion(cfg, Math.max(0, electrones)),
+      configCompleta: escribirCompleta(cfg),
+      i1: I1[z],
+      umbral: umbralEfectivo(I1[z]),
+      lista: listaDeElectrones(cfg)
+    }
+  }
+
+  /* Efecto del fotón: decisión por tramos, tal y como declara la fuente. */
+  function efectoDelFoton(z, q, estado, energia) {
+    const salida = { texto: '', ec: null, eyectado: false, excitado: false }
+    if (estado.electrones === 0) {
+      salida.texto = 'sin electrones: no hay nada que arrancar'
+      return salida
+    }
+    if (q !== 0) {
+      salida.texto = 'umbral del ion: no modelado'
+      return salida
+    }
+    if (energia <= 0) {
+      salida.texto = 'sin fotón'
+      return salida
+    }
+    if (z === 1) {
+      if (energia >= 13.6) {
+        salida.texto = 'electrón arrancado (ionización)'
+        salida.eyectado = true
+        salida.ec = energia - 13.6
+      } else if (Math.abs(energia - 10.2) <= 0.05) {
+        salida.texto = 'electrón excitado a n = 2 (salto 1→2)'
+        salida.excitado = true
+      } else if (Math.abs(energia - 12.09) <= 0.05) {
+        salida.texto = 'electrón excitado a n = 3 (salto 1→3)'
+        salida.excitado = true
+      } else if (energia >= 12.7 && energia <= 13.5) {
+        salida.texto = 'salto real no modelado (n = 4…10)'
+      } else {
+        salida.texto = 'no hay nivel a esa energía'
+      }
+      return salida
+    }
+    const umbral = umbralEfectivo(estado.i1)
+    if (umbral !== null && energia >= umbral) {
+      salida.texto = 'electrón arrancado (ionización)'
+      salida.eyectado = true
+      salida.ec = energia - estado.i1
+    } else {
+      salida.texto = 'por debajo del umbral: no arranca'
+    }
+    return salida
+  }
+
+  function longitudDeOnda(energia) {
+    if (!Number.isFinite(energia) || energia <= 0) return null
+    return 1240 / energia
+  }
+
+  /* ------------------------------------------------------------------
+     Estado de la interfaz
+     ------------------------------------------------------------------ */
+  const radios = { 1: 42, 2: 62, 3: 82, 4: 102, 5: 122 }
+  const nombresCapa = { 1: 'K', 2: 'L', 3: 'M', 4: 'N', 5: 'O' }
+  const CX = 185
+  const CY = 264
+  const GX0 = 48
+  const GX1 = 540
+  const GY0 = 206
+  const GY1 = 24
+  const I1_MAX = 25
+
+  const CADENCIA_ANUNCIO = 1.5
+  let ultimoAnuncio = ''
+
+  let llenando = false
+  let llenadoIniciado = false
+  let mostrados = 0
+  let acumulado = 0
+  let ultimoFrame = 0
+  let muestraActual = null
+  let efectoActual = null
+  let cargaUltima = null
+  let ultimoAnuncioTiempo = 0
+
+  function gx(z) {
+    return GX0 + (z - Z_MIN) * (GX1 - GX0) / (Z_MAX - Z_MIN)
+  }
+
+  function gy(energia) {
+    return GY0 - (limitar(energia, 0, I1_MAX) / I1_MAX) * (GY0 - GY1)
+  }
+
+  function anunciar(mensaje, ahora, respetarCadencia) {
+    if (!mensaje || mensaje === ultimoAnuncio) return
+    const instante = Number.isFinite(ahora) ? ahora : 0
+    if (respetarCadencia && instante - ultimoAnuncioTiempo < CADENCIA_ANUNCIO * 1000) return
+    ultimoAnuncio = mensaje
+    ultimoAnuncioTiempo = instante
+    texto(el('estado'), mensaje)
+  }
+
+  function movimientoReducido() {
+    return raiz.getAttribute('data-movimiento') === 'reducido'
+  }
+
+  /* ------------------------------------------------------------------
+     Variables
+     ------------------------------------------------------------------ */
+  function maxCarga(z) {
+    return Math.min(CARGA_MAX, z)
+  }
+
+  function leerVariables() {
+    const z = Math.round(limitar(numero(el('numero-atomico').value, 17), Z_MIN, Z_MAX))
+    const tope = maxCarga(z)
+    attr(el('carga-ionica'), 'max', String(tope))
+    const qSlider = Math.round(limitar(numero(el('carga-ionica').value, 0), CARGA_MIN, tope))
+    if (String(qSlider) !== el('carga-ionica').value) el('carga-ionica').value = String(qSlider)
+    const energia = Math.round(limitar(numero(el('energia-foton').value, 0), 0, FOTON_MAX) * 10) / 10
+    const modo = numero(el('modo').value, 0) === 1 ? 'subniveles' : 'capas'
+    return { z: z, q: qSlider, energia: energia, modo: modo }
+  }
+
+  function etiquetaCarga(z, q) {
+    const tope = maxCarga(z)
+    const electrones = z - q
+    const plural = (k) => (k > 1 ? ' electrones' : ' electrón')
+    const base = q === 0 ? 'átomo neutro'
+      : (q > 0 ? q + plural(q) + ' menos' : (-q) + plural(-q) + ' más')
+    let extra = ''
+    if (q === tope && q > 0) extra = ' (máximo posible con ' + z + plural(z) + ')'
+    if (q === CARGA_MIN && z < 3) extra = ' (mínimo admitido)'
+    return q + ', ' + base + ', ' + electrones + ' electrones' + extra
+  }
+
+  function etiquetaFoton(energia, estado, efecto) {
+    const lambda = longitudDeOnda(energia)
+    if (energia <= 0) return '0 eV, sin fotón'
+    let cadena = fmt(energia, 1) + ' eV, ' + (lambda === null ? '—' : fmt(lambda, 0)) + ' nm'
+    if (estado.electrones === 0) return cadena + ', sin electrones'
+    if (estado.q !== 0) return cadena + ', umbral del ion no modelado'
+    return cadena + ', umbral ' + fmt(estado.umbral, 1) + ' eV: ' + efecto.texto
+  }
+
+  /* ------------------------------------------------------------------
+     Dibujo de la escena
+     ------------------------------------------------------------------ */
+  function dibujarEscena(estado) {
+    const info = ELEMENTOS[estado.z]
+    texto(el('nucleo-simbolo'), info[0])
+    texto(el('nucleo-carga'), estado.z + ' p+')
+
+    const mostradosEfectivos = Math.min(mostrados, estado.lista.length)
+    const porCapa = [0, 0, 0, 0, 0, 0]
+    const totalesPorCapa = [0, 0, 0, 0, 0, 0]
+    for (let i = 0; i < estado.lista.length; i++) totalesPorCapa[estado.lista[i].n]++
+    for (let i = 0; i < mostradosEfectivos; i++) porCapa[estado.lista[i].n]++
+
+    const vistos = [0, 0, 0, 0, 0, 0]
+    const esNuevo = (i) => i === mostradosEfectivos - 1 && mostradosEfectivos < estado.lista.length
+    for (let i = 0; i < mostradosEfectivos; i++) {
+      const n = estado.lista[i].n
+      const total = totalesPorCapa[n]
+      const angulo = (-90 + 180 / total + (360 / total) * vistos[n]) * Math.PI / 180
+      const x = CX + radios[n] * Math.cos(angulo)
+      const y = CY + radios[n] * Math.sin(angulo)
+      const circulo = el('e-' + (i + 1))
+      if (!circulo) continue
+      attr(circulo, 'cx', x.toFixed(1))
+      attr(circulo, 'cy', y.toFixed(1))
+      attr(circulo, 'r', esNuevo(i) ? '8' : '6')
+      attr(circulo, 'opacity', '1')
+      attr(circulo, 'class', 'electron' + (esNuevo(i) ? ' electron-nuevo' : ''))
+      vistos[n]++
+    }
+    for (let i = mostradosEfectivos + 1; i <= ELECTRONES_MAX; i++) {
+      const circulo = el('e-' + i)
+      if (!circulo) continue
+      attr(circulo, 'opacity', '0')
+      attr(circulo, 'r', '6')
+      attr(circulo, 'class', 'electron')
+    }
+
+    for (let n = 1; n <= 5; n++) {
+      const capa = el('capa-' + n)
+      const ocupada = totalesPorCapa[n] > 0
+      let clase = 'capa'
+      if (!ocupada) clase = 'capa capa-vacia'
+      else if (n === estado.nExterna) clase = 'capa capa-externa'
+      attr(capa, 'class', clase)
+      texto(el('chip-' + n + '-texto'), nombresCapa[n] + ' ' + porCapa[n])
+      attr(el('chip-' + n + '-caja'), 'class', n === estado.nExterna && porCapa[n] > 0 ? 'chip chip-externa' : 'chip')
+      attr(el('chip-' + n + '-texto'), 'class', 'txt-chip' + (n === estado.nExterna && porCapa[n] > 0 ? ' chip-externa' : ''))
+    }
+
+    texto(el('rotulo-externa'), estado.nExterna > 0
+      ? 'Capa más externa (' + nombresCapa[estado.nExterna] + '): ' + estado.externas + ' electrones'
+      : 'Sin electrones: solo el núcleo')
+
+    const orden = ordenarLlenado(estado.cfg)
+    const mostradosPorSub = {}
+    for (let i = 0; i < mostradosEfectivos; i++) {
+      const clave = nombreSub(estado.lista[i].n, estado.lista[i].l)
+      mostradosPorSub[clave] = (mostradosPorSub[clave] || 0) + 1
+    }
+    for (let i = 0; i < ORDEN.length; i++) {
+      const s = ORDEN[i]
+      const clave = nombreSub(s.n, s.l)
+      const llenos = mostradosPorSub[clave] || 0
+      const total = cuentaSub(orden, s.n, s.l)
+      const nOrb = 2 * s.l + 1
+      // 43 y 41 son la primera barra y la altura de fila del diagrama en el marcado.
+      const barY = 43 + 41 * i
+      for (let k = 1; k <= nOrb; k++) {
+        // Regla de Hund: uno por orbital antes de aparear.
+        const e = llenos >= nOrb + k ? 2 : (llenos >= k ? 1 : 0)
+        const celda = el('sub-' + (i + 1) + '-e-' + k)
+        attr(celda, 'height', e === 2 ? '12' : (e === 1 ? '6' : '0'))
+        attr(celda, 'y', e === 1 ? String(barY + 6) : String(barY))
+      }
+      texto(el('sub-' + (i + 1) + '-count'), llenos + '/' + capacidad(s.l))
+      attr(el('sub-' + (i + 1) + '-caja'), 'class', total > 0 ? 'sub-caja sub-ocupado' : 'sub-caja')
+    }
+
+    const resumen = 'Átomo de ' + info[1] + ' con ' + estado.z + ' protones y ' + mostradosEfectivos +
+      ' de ' + estado.electrones + ' electrones dibujados. Capas: ' + textoCapas(porCapa) +
+      '. ' + (estado.nExterna > 0
+        ? 'La capa más externa (' + nombresCapa[estado.nExterna] + ') tiene ' + estado.externas + ' electrones.'
+        : 'No hay electrones.') +
+      (numero(el('modo').value, 0) === 1
+        ? ' Orden de llenado: ' + ORDEN.map((s) => nombreSub(s.n, s.l) + ' con ' + (mostradosPorSub[nombreSub(s.n, s.l)] || 0) +
+          ' de ' + capacidad(s.l)).join(', ') + '.'
+        : ' El diagrama de subniveles está oculto en el modo capas.')
+    attr(el('escena'), 'aria-label', resumen)
+  }
+
+  function textoCapas(capas) {
+    const partes = []
+    for (let n = 1; n <= 5; n++) {
+      if (capas[n] > 0) partes.push(nombresCapa[n] + ' ' + capas[n])
+    }
+    return partes.length ? partes.join(', ') : 'ninguna'
+  }
+
+  /* ------------------------------------------------------------------
+     Dibujo de la gráfica I₁ vs Z
+     ------------------------------------------------------------------ */
+  function dibujarCurvaI1() {
+    const puntos = []
+    for (let z = Z_MIN; z <= Z_MAX; z++) {
+      const px = gx(z).toFixed(1)
+      const py = gy(I1[z]).toFixed(1)
+      puntos.push(px + ',' + py)
+      const punto = el('p-' + z)
+      if (punto) {
+        attr(punto, 'cx', px)
+        attr(punto, 'cy', py)
+      }
+    }
+    attr(el('curva-i1'), 'points', puntos.join(' '))
+  }
+
+  function dibujarGrafica(estado, energia) {
+    const info = ELEMENTOS[estado.z]
+    const x = gx(estado.z)
+    const y = gy(estado.i1)
+    const xTxt = x.toFixed(1)
+    attr(el('punto-actual'), 'cx', xTxt)
+    attr(el('punto-actual'), 'cy', y.toFixed(1))
+    attr(el('punto-casing'), 'cx', xTxt)
+    attr(el('punto-casing'), 'cy', y.toFixed(1))
+    texto(el('rotulo-punto'), info[0] + ' ' + fmt(estado.i1, 2))
+    attr(el('rotulo-punto'), 'x', Math.min(GX1 - 40, Math.max(GX0 + 24, x)).toFixed(1))
+    /* Si la etiqueta se saliera del eje por arriba, se coloca bajo el punto. */
+    attr(el('rotulo-punto'), 'y', (y - 12 < GY1 + 14 ? y + 22 : y - 12).toFixed(1))
+    attr(el('linea-z'), 'x1', xTxt)
+    attr(el('linea-z'), 'x2', xTxt)
+
+    const hayUmbral = estado.q === 0 && estado.umbral !== null
+    const yUmbral = gy(hayUmbral ? estado.umbral : 0)
+    const yUmbralTxt = yUmbral.toFixed(1)
+    attr(el('casing-umbral'), 'y1', yUmbralTxt)
+    attr(el('casing-umbral'), 'y2', yUmbralTxt)
+    attr(el('casing-umbral'), 'opacity', hayUmbral ? '1' : '0')
+    attr(el('linea-umbral'), 'y1', yUmbralTxt)
+    attr(el('linea-umbral'), 'y2', yUmbralTxt)
+    attr(el('linea-umbral'), 'opacity', hayUmbral ? '1' : '0')
+    attr(el('rotulo-umbral'), 'opacity', hayUmbral ? '1' : '0')
+    texto(el('rotulo-umbral'), hayUmbral ? 'umbral ' + fmt(estado.umbral, 1) + ' eV' : 'umbral')
+
+    const hayFoton = energia > 0
+    const yFoton = gy(energia)
+    const yFotonTxt = yFoton.toFixed(1)
+    attr(el('casing-foton'), 'y1', yFotonTxt)
+    attr(el('casing-foton'), 'y2', yFotonTxt)
+    attr(el('casing-foton'), 'opacity', hayFoton ? '1' : '0')
+    attr(el('linea-foton'), 'y1', yFotonTxt)
+    attr(el('linea-foton'), 'y2', yFotonTxt)
+    attr(el('linea-foton'), 'opacity', hayFoton ? '1' : '0')
+    attr(el('rotulo-foton'), 'y', (yFoton - 6).toFixed(1))
+    attr(el('rotulo-foton'), 'opacity', hayFoton ? '1' : '0')
+    texto(el('rotulo-foton'), 'fotón ' + fmt(energia, 1) + ' eV' +
+      (hayUmbral ? ' · umbral ' + fmt(estado.umbral, 1) : ''))
+
+    /* Las dos etiquetas salen del borde izquierdo: si se solapan, el umbral se va a la derecha. */
+    const rotuloUmbralAbajo = hayUmbral && hayFoton && Math.abs(yFoton - yUmbral) < 22
+    attr(el('rotulo-umbral'), 'x', (rotuloUmbralAbajo ? GX1 - 96 : 52).toFixed(1))
+    attr(el('rotulo-umbral'), 'y', (yUmbral + 12).toFixed(1))
+
+    /* Barra Δ entre la línea del fotón y la del umbral, junto a la marca de Z. */
+    const hayDelta = hayUmbral && hayFoton
+    const xDelta = hayDelta ? (x > GX1 - 60 ? x - 14 : x + 14) : gx(17)
+    const centro = (yFoton + yUmbral) / 2
+    const deltaCorto = Math.abs(yFoton - yUmbral) < 12
+    const yDelta1 = deltaCorto ? centro - 6 : yFoton
+    const yDelta2 = deltaCorto ? centro + 6 : yUmbral
+    const delta = hayDelta ? Math.abs(energia - estado.umbral) : 0
+    attr(el('marca-delta'), 'x1', xDelta.toFixed(1))
+    attr(el('marca-delta'), 'x2', xDelta.toFixed(1))
+    attr(el('marca-delta'), 'y1', yDelta1.toFixed(1))
+    attr(el('marca-delta'), 'y2', yDelta2.toFixed(1))
+    attr(el('marca-delta'), 'opacity', hayDelta ? '1' : '0')
+    texto(el('rotulo-delta'), hayDelta ? 'Δ ' + fmt(delta, 1) : 'Δ')
+    attr(el('rotulo-delta'), 'x', (xDelta + (xDelta > GX1 - 60 ? -8 : 8)).toFixed(1))
+    attr(el('rotulo-delta'), 'text-anchor', xDelta > GX1 - 60 ? 'end' : 'start')
+    attr(el('rotulo-delta'), 'y', (centro + 4).toFixed(1))
+    attr(el('rotulo-delta'), 'opacity', hayDelta ? '1' : '0')
+
+    const lambda = longitudDeOnda(energia)
+    attr(el('grafica'), 'aria-label',
+      'Curva de energía de ionización del átomo neutro en función del número atómico, de Z = 1 a 36, en electronvoltios. ' +
+      'El punto actual es Z = ' + estado.z + ', ' + info[1] + ', con ' + fmt(estado.i1, 2) + ' eV. ' +
+      (hayUmbral
+        ? 'La línea punteada marca el umbral efectivo del átomo actual, ' + fmt(estado.umbral, 1) + ' eV. '
+        : 'No hay umbral marcado porque la especie es un ion. ') +
+      (hayFoton
+        ? 'La línea discontinua marca la energía del fotón, ' + fmt(energia, 1) + ' eV (' + fmt(lambda, 0) + ' nm).'
+        : 'No hay fotón incidente.') +
+      (hayDelta
+        ? ' La barra vertical marca la diferencia entre ambas: ' + fmt(delta, 1) + ' eV.'
+        : '') +
+      ' La curva sube al final de cada periodo y cae al empezar uno nuevo.')
+  }
+
+  /* ------------------------------------------------------------------
+     Lecturas
+     ------------------------------------------------------------------ */
+  function escribirLecturas(estado, energia, efecto) {
+    const info = ELEMENTOS[estado.z]
+    const nombreEspecie = estado.electrones === 0
+      ? info[0] + cargaTxt(estado.q) + ' (' + info[1] + ' sin electrones)'
+      : (estado.q === 0
+          ? info[1] + ' (' + info[0] + ')'
+          : info[0] + cargaTxt(estado.q) + ' (' + info[1] + ', ion)')
+
+    texto(el('lect-elemento'), nombreEspecie)
+    texto(el('lect-protones'), String(estado.z))
+    texto(el('lect-electrones'), String(estado.electrones))
+    texto(el('lect-carga'), estado.q === 0 ? '0' : (estado.q > 0 ? '+' + estado.q : '−' + (-estado.q)))
+    attr(el('lect-carga'), 'aria-label', estado.q === 0 ? 'carga neta 0, átomo neutro' : 'carga neta ' + estado.q + ' cargas elementales')
+
+    const capasTexto = []
+    for (let n = 1; n <= 5; n++) {
+      if (estado.capas[n] > 0) capasTexto.push(estado.capas[n])
+    }
+    texto(el('lect-capas'), capasTexto.length ? capasTexto.join(', ') : '—')
+    texto(el('lect-externa'), estado.nExterna > 0 ? String(estado.externas) : '0')
+    texto(el('lect-config'), estado.config)
+    texto(el('lect-config-completa'), estado.configCompleta)
+    texto(el('lect-valencia'), String(estado.valencia))
+    texto(el('lect-desapareados'), String(estado.desapareados))
+    texto(el('lect-i1'), fmt(estado.i1, 2))
+    const hayUmbral = estado.q === 0 && estado.umbral !== null
+    texto(el('lect-umbral'), hayUmbral ? fmt(estado.umbral, 1) : 'no modelado')
+    unidad('unidad-umbral', hayUmbral)
+    texto(el('lect-efecto'), efecto.texto)
+    texto(el('lect-ec'), efecto.ec === null ? '—' : fmt(efecto.ec, 2))
+    unidad('unidad-ec', efecto.ec !== null)
+    const lambda = longitudDeOnda(energia)
+    texto(el('lect-lambda'), lambda === null ? '—' : fmt(lambda, 1))
+    unidad('unidad-lambda', lambda !== null)
+
+    if (efecto.eyectado) {
+      const despues = estadoEspecie(estado.z, estado.q + 1)
+      const simbolo = ELEMENTOS[estado.z][0]
+      texto(el('lect-resultante'), simbolo + cargaTxt(estado.q + 1) + ' (' + ELEMENTOS[estado.z][1] +
+        '): ' + (despues.electrones === 0 ? 'sin electrones' : despues.config) + ' · capas ' + capasLista(despues))
+    } else {
+      texto(el('lect-resultante'), '—')
+    }
+
+    texto(el('ayuda-umbral'), estado.q === 0 && estado.umbral !== null
+      ? fmt(estado.umbral, 1) + ' eV · I₁ = ' + fmt(estado.i1, 2) + ' eV'
+      : 'no modelado (ion)')
+  }
+
+  function capasLista(estado) {
+    const partes = []
+    for (let n = 1; n <= 5; n++) {
+      if (estado.capas[n] > 0) partes.push(estado.capas[n])
+    }
+    return partes.length ? partes.join(', ') : '—'
+  }
+
+  function aplicarModo(modo) {
+    const subniveles = modo === 'subniveles'
+    /* «Electrones de la capa más externa» se ve en los dos modos: es la lectura que la Fuente pide en capas. */
+    const ocultar = {
+      'fila-config': !subniveles,
+      'fila-config-completa': !subniveles,
+      'fila-valencia': !subniveles,
+      'fila-desapareados': !subniveles,
+      'fila-i1': !subniveles
+    }
+    Object.keys(ocultar).forEach((id) => {
+      const nodo = el(id)
+      if (!nodo) return
+      if (ocultar[id]) nodo.setAttribute('hidden', '')
+      else nodo.removeAttribute('hidden')
+    })
+    attr(el('diagrama'), 'opacity', subniveles ? '1' : '0')
+    attr(el('diagrama'), 'aria-hidden', subniveles ? 'false' : 'true')
+    /* Sin diagrama, el átomo se centra en el hueco que queda libre. */
+    attr(el('atomo'), 'transform', subniveles ? 'translate(0,0)' : 'translate(92,0)')
+  }
+
+  /* ------------------------------------------------------------------
+     Tabla de datos
+     ------------------------------------------------------------------ */
+  function filaDatos(estado) {
+    const capasTexto = []
+    for (let n = 1; n <= 5; n++) {
+      if (estado.capas[n] > 0) capasTexto.push(estado.capas[n])
+    }
+    const umbral = estado.umbral
+    return {
+      z: estado.z,
+      simbolo: ELEMENTOS[estado.z][0],
+      electrones: estado.electrones,
+      capas: capasTexto.length ? capasTexto.join(' ') : '—',
+      i1: fmt(estado.i1, 2),
+      umbral: umbral === null ? '—' : fmt(umbral, 1),
+      lambda: umbral === null ? '—' : fmt(longitudDeOnda(umbral), 1)
+    }
+  }
+
+  function construirTabla(q) {
+    const cuerpo = el('tabla-cuerpo')
+    if (!cuerpo) return []
+    while (cuerpo.firstChild) cuerpo.removeChild(cuerpo.firstChild)
+    const filas = []
+    for (let z = Z_MIN; z <= Z_MAX; z++) {
+      const qc = Math.round(limitar(q, CARGA_MIN, maxCarga(z)))
+      const estado = estadoEspecie(z, qc)
+      const datos = filaDatos(estado)
+      filas.push(datos)
+      const tr = document.createElement('tr')
+      const encabezado = document.createElement('th')
+      encabezado.setAttribute('scope', 'row')
+      encabezado.textContent = String(datos.z)
+      tr.appendChild(encabezado)
+      const celdas = [datos.simbolo, datos.electrones, datos.capas, datos.i1, datos.umbral, datos.lambda]
+      celdas.forEach((valor) => {
+        const td = document.createElement('td')
+        td.textContent = String(valor)
+        tr.appendChild(td)
+      })
+      cuerpo.appendChild(tr)
+    }
+    return filas
+  }
+
+  function marcarFilaActual(z) {
+    const cuerpo = el('tabla-cuerpo')
+    if (!cuerpo) return
+    for (let i = 0; i < cuerpo.children.length; i++) {
+      const tr = cuerpo.children[i]
+      const primera = tr.children.length ? tr.children[0].textContent : ''
+      if (primera === String(z)) tr.setAttribute('data-actual', 'true')
+      else tr.removeAttribute('data-actual')
+    }
+  }
+
+  function copiarDatos() {
+    const cuerpo = el('tabla-cuerpo')
+    if (!cuerpo) return
+    const lineas = ['Z\tSímbolo\tElectrones\tCapas\tI1_eV\tUmbral_eV\tLongitud_de_onda_umbral_nm']
+    for (let i = 0; i < cuerpo.children.length; i++) {
+      const tr = cuerpo.children[i]
+      const valores = []
+      for (let j = 0; j < tr.children.length; j++) valores.push(tr.children[j].textContent)
+      lineas.push(valores.join('\t'))
+    }
+    const aviso = el('aviso-copiar')
+    const textoTSV = lineas.join('\n')
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textoTSV).then(
+        function () { texto(aviso, 'Copiadas ' + (lineas.length - 1) + ' filas: pega en una hoja de cálculo.') },
+        function () { texto(aviso, 'El navegador no ha permitido copiar. Los datos están en la tabla de arriba.') }
+      )
+    } else {
+      texto(aviso, 'Este navegador no permite copiar. Los datos están en la tabla de arriba.')
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Especies fijadas para comparar
+     ------------------------------------------------------------------ */
+  const MAX_FIJADAS = 8
+  const fijadas = []
+
+  function nombreCorto(estado) {
+    const info = ELEMENTOS[estado.z]
+    if (estado.electrones === 0) return info[0] + cargaTxt(estado.q) + ' sin electrones'
+    if (estado.q === 0) return info[1].charAt(0).toUpperCase() + info[1].slice(1)
+    return info[0] + cargaTxt(estado.q)
+  }
+
+  function filaComparacion(estado) {
+    const umbral = estado.q === 0 ? estado.umbral : null
+    return [
+      nombreCorto(estado),
+      String(estado.z),
+      String(estado.electrones),
+      capasLista(estado),
+      estado.config,
+      fmt(estado.i1, 2),
+      umbral === null ? 'no modelado' : fmt(umbral, 1),
+      umbral === null ? '—' : fmt(longitudDeOnda(umbral), 1)
+    ]
+  }
+
+  function dibujarComparacion() {
+    const cuerpo = el('comparar-cuerpo')
+    if (cuerpo) {
+      while (cuerpo.firstChild) cuerpo.removeChild(cuerpo.firstChild)
+      fijadas.forEach(function (item) {
+        const tr = document.createElement('tr')
+        item.fila.forEach(function (valor, indice) {
+          const celda = document.createElement(indice === 0 ? 'th' : 'td')
+          if (indice === 0) celda.setAttribute('scope', 'row')
+          celda.textContent = valor
+          tr.appendChild(celda)
+        })
+        cuerpo.appendChild(tr)
+      })
+    }
+    const caja = el('comparacion')
+    if (!caja) return
+    if (fijadas.length) caja.removeAttribute('hidden')
+    else caja.setAttribute('hidden', '')
+  }
+
+  function fijarEspecie() {
+    const aviso = el('aviso-comparar')
+    if (!muestraActual) return
+    const clave = muestraActual.z + ':' + muestraActual.q
+    for (let i = 0; i < fijadas.length; i++) {
+      if (fijadas[i].clave === clave) {
+        texto(aviso, nombreCorto(muestraActual) + ' ya está fijada: no se repite.')
+        return
+      }
+    }
+    if (fijadas.length >= MAX_FIJADAS) {
+      texto(aviso, 'Ya hay ' + MAX_FIJADAS + ' especies fijadas: vacía la comparación para añadir otra.')
+      return
+    }
+    fijadas.push({ clave: clave, fila: filaComparacion(muestraActual) })
+    dibujarComparacion()
+    texto(aviso, 'Fijada ' + nombreCorto(muestraActual) + ': ya son ' + fijadas.length + ' especies para comparar.')
+  }
+
+  function vaciarComparacion() {
+    fijadas.length = 0
+    dibujarComparacion()
+    texto(el('aviso-comparar'), 'Comparación vacía: fija una especie para empezar.')
+  }
+
+  function copiarComparacion() {
+    const aviso = el('aviso-comparar')
+    if (!fijadas.length) {
+      texto(aviso, 'No hay ninguna especie fijada todavía: usa «Fijar especie».')
+      return
+    }
+    const lineas = ['Especie\tZ\tElectrones\tCapas\tConfiguracion\tI1_eV\tUmbral_eV\tLongitud_de_onda_umbral_nm']
+    fijadas.forEach(function (item) { lineas.push(item.fila.join('\t')) })
+    const textoTSV = lineas.join('\n')
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textoTSV).then(
+        function () { texto(aviso, 'Copiadas ' + fijadas.length + ' especies: pega en una hoja de cálculo.') },
+        function () { texto(aviso, 'El navegador no ha permitido copiar. Las especies están en la tabla de arriba.') }
+      )
+    } else {
+      texto(aviso, 'Este navegador no permite copiar. Las especies están en la tabla de arriba.')
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Actualización general
+     ------------------------------------------------------------------ */
+  function actualizar() {
+    const qPedida = Math.round(numero(el('carga-ionica').value, 0))
+    const v = leerVariables()
+    const estado = estadoEspecie(v.z, v.q)
+    muestraActual = estado
+    efectoActual = efectoDelFoton(v.z, v.q, estado, v.energia)
+
+    if (!llenadoIniciado) mostrados = estado.lista.length
+    else if (mostrados > estado.lista.length) mostrados = estado.lista.length
+
+    attr(el('val-numero-atomico'), 'data-observable', 'número atómico')
+    texto(el('val-numero-atomico'), String(v.z))
+    attr(el('numero-atomico'), 'aria-valuetext',
+      v.z + ', ' + ELEMENTOS[v.z][1] + ', ' + estado.electrones + ' electrones')
+
+    attr(el('val-carga-ionica'), 'data-observable', 'carga iónica')
+    texto(el('val-carga-ionica'), v.q === 0 ? '0' : (v.q > 0 ? '+' + v.q : '−' + (-v.q)))
+    attr(el('carga-ionica'), 'aria-valuetext', etiquetaCarga(v.z, v.q))
+
+    attr(el('val-energia-foton'), 'data-observable', 'energía del fotón')
+    texto(el('val-energia-foton'), fmt(v.energia, 1))
+    attr(el('energia-foton'), 'aria-valuetext', etiquetaFoton(v.energia, estado, efectoActual))
+
+    aplicarModo(v.modo)
+    dibujarEscena(estado)
+    dibujarGrafica(estado, v.energia)
+    escribirLecturas(estado, v.energia, efectoActual)
+
+    if (cargaUltima !== v.q) {
+      construirTabla(v.q)
+      cargaUltima = v.q
+    }
+    marcarFilaActual(v.z)
+
+    if (qPedida !== v.q) {
+      const carga = v.q > 0 ? '+' + v.q : '−' + (-v.q)
+      const motivo = v.q > qPedida
+        ? 'con Z = ' + v.z + ' el átomo solo tiene ' + v.z + (v.z === 1 ? ' electrón' : ' electrones') +
+          ' y no puede perder más'
+        : 'la carga más negativa admitida en esta simulación es −3'
+      anunciar('Carga corregida a ' + carga + ': ' + motivo + '.', Date.now(), false)
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Llenado guiado, electrón a electrón
+     ------------------------------------------------------------------ */
+  function mensajeLlenado(estado) {
+    const total = estado.lista.length
+    const vistos = Math.min(mostrados, total)
+    if (total === 0) return 'Sin electrones: solo el núcleo.'
+    if (vistos === 0) return 'Llenado a punto de empezar: solo el núcleo.'
+    const ultimo = estado.lista[vistos - 1]
+    if (vistos >= total) {
+      return 'Llenado completo: ' + total + ' electrones, el último en ' + nombreSub(ultimo.n, ultimo.l) +
+        '. Capas ' + capasLista(estado) + '.'
+    }
+    return 'Electrón ' + vistos + ' de ' + total + ', en ' + nombreSub(ultimo.n, ultimo.l) +
+      '. Capas ' + capasLista(estado) + '.'
+  }
+
+  function sincronizarLlenar() {
+    const boton = el('btn-llenar')
+    if (!boton) return
+    boton.setAttribute('aria-pressed', llenando ? 'true' : 'false')
+    boton.setAttribute('aria-label', llenando
+      ? 'Pausar llenado: detiene la aparición de electrones'
+      : 'Iniciar llenado: los electrones aparecen uno a uno')
+    texto(boton, llenando ? 'Pausar llenado' : 'Iniciar llenado')
+  }
+
+  let bucleVivo = false
+
+  function bucle(ahora) {
+    if (!llenando || !muestraActual) {
+      bucleVivo = false
+      return
+    }
+    const dt = ultimoFrame ? Math.min(0.05, (ahora - ultimoFrame) / 1000) : 0
+    ultimoFrame = ahora
+    const velocidad = movimientoReducido() ? 0.6 : 2.2
+    const total = muestraActual.lista.length
+    acumulado += dt * velocidad
+    while (acumulado >= 1 && mostrados < total) {
+      acumulado -= 1
+      mostrados += 1
+    }
+    if (mostrados >= total) {
+      acumulado = 0
+      llenando = false
+      sincronizarLlenar()
+      dibujarEscena(muestraActual)
+      anunciar(mensajeLlenado(muestraActual), ahora, false)
+      bucleVivo = false
+      return
+    }
+    dibujarEscena(muestraActual)
+    anunciar(mensajeLlenado(muestraActual), ahora, true)
+    window.requestAnimationFrame(bucle)
+  }
+
+  function arrancarBucle() {
+    if (bucleVivo) return
+    bucleVivo = true
+    ultimoFrame = 0
+    window.requestAnimationFrame(bucle)
+  }
+
+  function alternarLlenado() {
+    if (!muestraActual) return
+    const total = muestraActual.lista.length
+    if (total === 0) {
+      anunciar('Esta especie no tiene electrones que llenar.', 0, false)
+      return
+    }
+    if (!llenando && mostrados >= total) mostrados = 0
+    llenando = !llenando
+    llenadoIniciado = true
+    acumulado = 0
+    sincronizarLlenar()
+    if (llenando) {
+      anunciar('Llenado iniciado: los electrones aparecen uno a uno en el orden 1s, 2s, 2p, 3s…', 0, false)
+      arrancarBucle()
+    } else {
+      anunciar('Llenado pausado en el electrón ' + mostrados + ' de ' + total + '.', 0, false)
+    }
+  }
+
+  function paso() {
+    if (!muestraActual) return
+    const total = muestraActual.lista.length
+    if (total === 0) {
+      anunciar('Esta especie no tiene electrones que llenar.', 0, false)
+      return
+    }
+    if (!llenadoIniciado) {
+      llenadoIniciado = true
+      mostrados = 0
+    }
+    if (mostrados >= total) {
+      anunciar('Ya están los ' + total + ' electrones: ' + muestraActual.config + '. Cambia Z o la carga para comparar especies.', 0, false)
+      return
+    }
+    llenando = false
+    sincronizarLlenar()
+    mostrados += 1
+    acumulado = 0
+    dibujarEscena(muestraActual)
+    anunciar(mensajeLlenado(muestraActual), 0, false)
+  }
+
+  function reiniciar() {
+    el('numero-atomico').value = '17'
+    el('carga-ionica').value = '0'
+    el('energia-foton').value = '0'
+    el('modo').value = '0'
+    llenando = false
+    llenadoIniciado = false
+    mostrados = 0
+    acumulado = 0
+    ultimoFrame = 0
+    cargaUltima = null
+    ultimoAnuncio = ''
+    sincronizarLlenar()
+    actualizar()
+    anunciar('Simulación reiniciada: cloro (Z = 17), átomo neutro, sin fotón y en modo capas.', 0, false)
+  }
+
+  /* ------------------------------------------------------------------
+     Preferencias de accesibilidad
+     ------------------------------------------------------------------ */
+  const PASOS_LETRA = [0.875, 1, 1.125, 1.25, 1.375, 1.5]
+
+  function aplicarTema(oscuro) {
+    raiz.setAttribute('data-theme', oscuro ? 'dark' : 'light')
+    const boton = el('btn-tema')
+    if (boton) {
+      boton.setAttribute('aria-pressed', oscuro ? 'true' : 'false')
+      boton.setAttribute('aria-label', oscuro
+        ? 'Modo claro: vuelve al tema claro'
+        : 'Modo oscuro: cambia entre tema claro y tema oscuro')
+      texto(boton, oscuro ? 'Modo claro' : 'Modo oscuro')
+    }
+    guardarPref('tema', oscuro ? 'oscuro' : 'claro')
+  }
+
+  function temaOscuro() {
+    return raiz.getAttribute('data-theme') === 'dark'
+  }
+
+  function aplicarContraste(alto) {
+    if (alto) raiz.setAttribute('data-contraste', 'alto')
+    else raiz.removeAttribute('data-contraste')
+    const boton = el('btn-contraste')
+    if (boton) {
+      boton.setAttribute('aria-pressed', alto ? 'true' : 'false')
+      boton.setAttribute('aria-label', alto
+        ? 'Contraste normal: vuelve a la paleta habitual'
+        : 'Contraste alto: activa la paleta de máximo contraste')
+      texto(boton, alto ? 'Contraste normal' : 'Contraste alto')
+    }
+    guardarPref('contraste', alto ? 'alto' : 'normal')
+  }
+
+  function aplicarMovimiento(reducido) {
+    if (reducido) raiz.setAttribute('data-movimiento', 'reducido')
+    else raiz.removeAttribute('data-movimiento')
+    const boton = el('btn-movimiento')
+    if (boton) {
+      boton.setAttribute('aria-pressed', reducido ? 'true' : 'false')
+      boton.setAttribute('aria-label', reducido
+        ? 'Más movimiento: devuelve la animación a su velocidad normal'
+        : 'Menos movimiento: reduce la velocidad de la animación')
+      texto(boton, reducido ? 'Más movimiento' : 'Menos movimiento')
+    }
+    guardarPref('movimiento', reducido ? 'reducido' : 'normal')
+  }
+
+  function aplicarFuente(valor) {
+    raiz.style.setProperty('--fs', valor + 'rem')
+    /* Con letra grande la rejilla pasa a una columna: así la tabla y la gráfica no necesitan scroll horizontal. */
+    raiz.setAttribute('data-letra', valor >= 1.25 ? 'grande' : 'normal')
+    texto(el('val-letra'), Math.round(valor * 100) + ' %')
+    guardarPref('fs', String(valor))
+  }
+
+  function cambiarLetra(paso) {
+    const actual = numero(leerPref('fs', '1'), 1)
+    let indice = PASOS_LETRA.indexOf(actual)
+    if (indice < 0) indice = 1
+    indice = Math.round(limitar(indice + paso, 0, PASOS_LETRA.length - 1))
+    aplicarFuente(PASOS_LETRA[indice])
+    anunciar('Tamaño de la letra: ' + Math.round(PASOS_LETRA[indice] * 100) + ' %', Date.now(), false)
+  }
+
+  function alternarTema() {
+    aplicarTema(!temaOscuro())
+  }
+
+  function alternarContraste() {
+    aplicarContraste(raiz.getAttribute('data-contraste') !== 'alto')
+  }
+
+  function alternarMovimiento() {
+    aplicarMovimiento(!movimientoReducido())
+  }
+
+  function alternarDatos() {
+    const panel = el('datos')
+    const boton = el('btn-datos')
+    if (!panel || !boton) return
+    const visible = panel.getAttribute('hidden') === null
+    if (visible) {
+      panel.setAttribute('hidden', '')
+      boton.setAttribute('aria-expanded', 'false')
+      boton.setAttribute('aria-label', 'Ver datos: tabla con los 36 elementos')
+      texto(boton, 'Ver datos')
+    } else {
+      panel.removeAttribute('hidden')
+      boton.setAttribute('aria-expanded', 'true')
+      boton.setAttribute('aria-label', 'Ocultar datos: cierra la tabla de los 36 elementos')
+      texto(boton, 'Ocultar datos')
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Conexión de controles
+     ------------------------------------------------------------------ */
+  ;['numero-atomico', 'carga-ionica', 'energia-foton'].forEach((id) => {
+    const control = el(id)
+    if (control) control.addEventListener('input', actualizar)
+  })
+
+  const controlModo = el('modo')
+  if (controlModo) controlModo.addEventListener('change', actualizar)
+
+  const botonLlenar = el('btn-llenar')
+  if (botonLlenar) botonLlenar.addEventListener('click', alternarLlenado)
+  const botonPaso = el('btn-paso')
+  if (botonPaso) botonPaso.addEventListener('click', paso)
+  const botonReiniciar = el('btn-reiniciar')
+  if (botonReiniciar) botonReiniciar.addEventListener('click', reiniciar)
+  const botonDatos = el('btn-datos')
+  if (botonDatos) botonDatos.addEventListener('click', alternarDatos)
+  const botonCopiar = el('btn-copiar')
+  if (botonCopiar) botonCopiar.addEventListener('click', copiarDatos)
+  const botonFijar = el('btn-fijar')
+  if (botonFijar) botonFijar.addEventListener('click', fijarEspecie)
+  const botonCopiarComparar = el('btn-copiar-comparar')
+  if (botonCopiarComparar) botonCopiarComparar.addEventListener('click', copiarComparacion)
+  const botonVaciarComparar = el('btn-vaciar-comparar')
+  if (botonVaciarComparar) botonVaciarComparar.addEventListener('click', vaciarComparacion)
+
+  const botonTema = el('btn-tema')
+  if (botonTema) botonTema.addEventListener('click', alternarTema)
+  const botonContraste = el('btn-contraste')
+  if (botonContraste) botonContraste.addEventListener('click', alternarContraste)
+  const botonMovimiento = el('btn-movimiento')
+  if (botonMovimiento) botonMovimiento.addEventListener('click', alternarMovimiento)
+  const botonMenos = el('btn-texto-menos')
+  if (botonMenos) botonMenos.addEventListener('click', function () { cambiarLetra(-1) })
+  const botonMas = el('btn-texto-mas')
+  if (botonMas) botonMas.addEventListener('click', function () { cambiarLetra(1) })
+
+  document.addEventListener("keydown", function (evento) {
+    if (evento.ctrlKey || evento.metaKey || evento.altKey) return
+    const objetivo = evento.target
+    const etiqueta = objetivo && objetivo.tagName ? objetivo.tagName : ''
+    if (etiqueta === 'BUTTON' || etiqueta === 'SELECT' || etiqueta === 'TEXTAREA') return
+    /* En un deslizador las letras no escriben nada, así que los atajos siguen funcionando con la barra enfocada. */
+    if (etiqueta === 'INPUT' && objetivo.getAttribute && objetivo.getAttribute('type') !== 'range') return
+    const tecla = evento.key
+    if (tecla === ' ' || tecla === 'Spacebar') { evento.preventDefault(); alternarLlenado() }
+    else if (tecla === 'p' || tecla === 'P') { evento.preventDefault(); paso() }
+    else if (tecla === 'r' || tecla === 'R') { evento.preventDefault(); reiniciar() }
+    else if (tecla === 't' || tecla === 'T') { evento.preventDefault(); alternarTema() }
+    else if (tecla === 'd' || tecla === 'D') { evento.preventDefault(); alternarDatos() }
+    else if (tecla === 'm' || tecla === 'M') { evento.preventDefault(); alternarMovimiento() }
+  })
+
+  /* ------------------------------------------------------------------
+     Arranque
+     ------------------------------------------------------------------ */
+  function prefiereOscuro() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  }
+
+  function prefiereMovimientoReducido() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  }
+
+  const temaGuardado = leerPref('tema', '')
+  aplicarTema(temaGuardado ? temaGuardado === 'oscuro' : prefiereOscuro())
+  aplicarContraste(leerPref('contraste', '') === 'alto')
+  const movimientoGuardado = leerPref('movimiento', '')
+  aplicarMovimiento(movimientoGuardado ? movimientoGuardado === 'reducido' : prefiereMovimientoReducido())
+  aplicarFuente(limitar(numero(leerPref('fs', '1'), 1), PASOS_LETRA[0], PASOS_LETRA[PASOS_LETRA.length - 1]))
+
+  dibujarCurvaI1()
+  sincronizarLlenar()
+  actualizar()
+})()
+</script>
+</body>
+</html>

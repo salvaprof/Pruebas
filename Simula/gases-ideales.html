@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Simulación de gases ideales: elige el modo Boyle, Charles, Gay-Lussac o libre, mueve el pistón, la temperatura y los moles y observa la lectura del manómetro, las partículas y las gráficas p-V, p-T, V-T y pV.">
+<title>Leyes de los gases ideales · Simulación interactiva</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fs: 1rem;
+    --bg: #f5f7fa; --panel: #ffffff; --panel-2: #eef2f7;
+    --fg: #14181f; --muted: #566070; --line: #6f7a88;
+    --accent: #1a5fd0; --accent-2: #b3541e; --ok: #1c7a4a; --warn: #a4400f;
+    --scene-bg: #ffffff; --grid: #c9d2de; --shadow: 0 1px 3px rgb(0 0 0 / .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-theme="dark"]) {
+      --bg: #101318; --panel: #181d24; --panel-2: #20262e;
+      --fg: #f2f5f9; --muted: #a9b3c1; --line: #7d8896;
+      --accent: #7ab8ff; --accent-2: #f0a06a; --ok: #66d19b; --warn: #ff9a6b;
+      --scene-bg: #0d1116; --grid: #242b34; --shadow: none;
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #101318; --panel: #181d24; --panel-2: #20262e;
+    --fg: #f2f5f9; --muted: #a9b3c1; --line: #7d8896;
+    --accent: #7ab8ff; --accent-2: #f0a06a; --ok: #66d19b; --warn: #ff9a6b;
+    --scene-bg: #0d1116; --grid: #242b34; --shadow: none;
+  }
+  [data-contraste="alto"] {
+    --bg: #fff; --panel: #fff; --panel-2: #fff; --fg: #000; --muted: #000; --line: #000;
+    --accent: #0b3ea8; --accent-2: #8a2b00; --ok: #0b0b0b; --warn: #0b0b0b;
+    --scene-bg: #fff; --grid: #000; --shadow: none;
+  }
+  [data-theme="dark"][data-contraste="alto"] {
+    --bg: #000; --panel: #000; --panel-2: #000; --fg: #fff; --muted: #fff; --line: #fff;
+    --accent: #ffd000; --accent-2: #00e5ff; --ok: #fff; --warn: #fff;
+    --scene-bg: #000; --grid: #fff;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: var(--fs); }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .5rem; }
+  p, li, dd, dt, th, td, label, output, button, input, select { font-size: inherit; }
+  .sub { color: var(--muted); margin: 0; }
+
+  header.barras {
+    position: sticky; top: 0; z-index: 5; background: var(--panel);
+    border-bottom: 1px solid var(--line); padding: .75rem 1rem;
+    display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: center;
+  }
+  header.barras .titulo { flex: 1 1 18rem; min-width: 15rem; }
+  .ajustes { display: flex; flex-wrap: wrap; gap: .4rem; }
+  button {
+    font: inherit; min-height: 44px; min-width: 44px; padding: .45rem .8rem;
+    background: var(--panel-2); color: var(--fg); border: 1px solid var(--line);
+    border-radius: .55rem; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"] {
+    background: var(--accent); color: var(--scene-bg); border-color: var(--accent); border-width: 2px;
+  }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:focus:not(:focus-visible), input:focus:not(:focus-visible), select:focus:not(:focus-visible) {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+  .salto {
+    position: absolute; left: -999px; top: 0; z-index: 8;
+    background: var(--panel); color: var(--fg); border: 2px solid var(--accent);
+    border-radius: .5rem; padding: .5rem .8rem;
+  }
+  .salto:focus { left: .5rem; }
+
+  main {
+    display: grid; gap: 1rem; padding: 1rem;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .95fr);
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    header.barras { position: static; }
+  }
+  /* Con la letra muy grande la barra fija taparía media pantalla. */
+  [data-letra="grande"] header.barras { position: static; }
+  .panel, .escena, .grafica {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: .75rem; padding: 1rem; box-shadow: var(--shadow);
+  }
+  .columna { display: grid; gap: 1rem; }
+  figure { margin: 0; }
+  figcaption { color: var(--muted); font-size: .95rem; margin-top: .4rem; }
+  canvas {
+    display: block; width: 100%; height: auto;
+    background: var(--scene-bg); border-radius: .5rem;
+  }
+
+  .control { display: grid; gap: .25rem; margin-bottom: .9rem; }
+  .control label { font-weight: 600; }
+  .control .fila { display: grid; grid-template-columns: minmax(0, 1fr) 5.5rem; gap: .6rem; align-items: center; }
+  input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--accent); }
+  input[type="range"]:disabled { accent-color: var(--muted); }
+  /* aria-disabled deja el deslizador accesible: hay que pintarlo como inactivo */
+  input[type="range"][aria-disabled="true"] { accent-color: var(--muted); opacity: .55; }
+  select {
+    width: 100%; min-height: 44px; padding: .45rem .55rem;
+    background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: .5rem;
+  }
+  output { font-variant-numeric: tabular-nums; }
+  .valor { text-align: right; font-weight: 700; }
+  .unidad { color: var(--muted); font-weight: 400; font-size: .85rem; white-space: nowrap; }
+  .fija { color: var(--warn); font-weight: 400; font-size: .85rem; }
+  .control.bloqueado { background: var(--panel-2); border-radius: .5rem; padding: .35rem .5rem; }
+
+  dl.lecturas { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .5rem; margin: 0; }
+  dl.lecturas > div { border: 1px solid var(--line); border-radius: .55rem; padding: .5rem .65rem; background: var(--panel-2); }
+  dl.lecturas > div.clave { border-left: 4px solid var(--accent); }
+  dl.lecturas dt { font-size: .9rem; color: var(--muted); }
+  dl.lecturas dd { margin: .15rem 0 0; font-size: 1.15rem; font-weight: 700; }
+  #estado { margin: .9rem 0 0; padding: .6rem .75rem; border-left: 4px solid var(--accent); background: var(--panel-2); border-radius: .4rem; }
+  #aviso { margin: .6rem 0 0; padding: .6rem .75rem; border-left: 4px solid var(--warn); background: var(--panel-2); border-radius: .4rem; }
+  .acciones { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+
+  .envolver-tabla { overflow-x: auto; min-width: 0; }
+  table { border-collapse: collapse; width: 100%; margin-top: .6rem; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  caption { text-align: left; color: var(--muted); font-size: .95rem; padding-bottom: .4rem; }
+  th, td { border: 1px solid var(--line); padding: .2rem .35rem; text-align: right; white-space: nowrap; }
+  th { background: var(--panel-2); }
+  [hidden] { display: none !important; }
+
+  section.texto { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem; padding: 1rem; }
+  section.texto ul, section.texto ol { margin: 0; padding-left: 1.2rem; }
+  section.texto li { margin-bottom: .35rem; }
+  .retos { border-left: 4px solid var(--accent-2); }
+  .sesion { color: var(--muted); font-size: .85rem; }
+  footer { padding: 1rem; color: var(--muted); font-size: .95rem; }
+  .atajos kbd {
+    font: inherit; background: var(--panel-2); border: 1px solid var(--line);
+    border-bottom-width: 2px; border-radius: .35rem; padding: 0 .35rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+  [data-movimiento="reducido"] * { animation: none !important; transition: none !important; }
+</style>
+</head>
+<body data-sim-id="gases-ideales" data-materia="Química" data-nivel="ESO" data-render="canvas" data-curso="3º y 4º ESO">
+<header class="barras">
+  <div class="titulo">
+    <h1>Leyes de los gases ideales</h1>
+    <p class="sub">Química · 3º y 4º ESO · Elige un modo de laboratorio, mueve el pistón y mide la presión del gas.</p>
+  </div>
+  <div class="ajustes" role="group" aria-label="Ajustes de accesibilidad">
+    <button type="button" id="btn-tema" data-action="tema" aria-pressed="false">Tema oscuro</button>
+    <button type="button" id="btn-contraste" data-action="contraste" aria-pressed="false">Alto contraste</button>
+    <button type="button" id="btn-texto-menos" data-action="texto-menos" aria-label="Reducir tamaño de letra">A−</button>
+    <button type="button" id="btn-texto-mas" data-action="texto-mas" aria-label="Aumentar tamaño de letra">A+</button>
+    <button type="button" id="btn-movimiento" data-action="movimiento" aria-pressed="false">Menos movimiento</button>
+  </div>
+</header>
+
+<main>
+  <a class="salto" href="#modo">Saltar a los controles</a>
+  <div class="columna">
+    <figure class="escena">
+      <canvas id="escena" width="620" height="450" role="img"
+              aria-label="Cilindro con pistón, termómetro y manómetro digital con 4,0 litros de gas a 300 kelvin y 311,8 kilopascales."
+              aria-describedby="escena-resumen"></canvas>
+      <figcaption id="escena-resumen">El gas está encerrado entre la pared izquierda del cilindro y el pistón. La regla de abajo marca los litros a los que llega el pistón; el termómetro de la izquierda mide el gas y el recuadro de la derecha es el manómetro digital, con la barra de presión y la lectura numérica en kPa. Las bolitas son una muestra del gas: se mueven y chocan. El número grande del dibujo es el <strong>visor</strong> del manómetro; en el panel «Lecturas» están la casilla <strong>Manómetro</strong>, que es esa misma lectura con su error, y la casilla <strong>Presión de la ley</strong>, que es el valor calculado con la ecuación, sin error del aparato. Todos los valores están en «Lecturas» y en la tabla de datos. El color del gas es ilustrativo: se pone más intenso al comprimir, pero no representa la densidad a escala.</figcaption>
+    </figure>
+
+    <div class="control">
+      <label for="tipo-grafica">Gráfica que se representa</label>
+      <select id="tipo-grafica">
+        <option value="p-v" selected>Presión frente al volumen (p-V)</option>
+        <option value="p-t">Presión frente a la temperatura (p-T)</option>
+        <option value="v-t">Volumen frente a la temperatura (V-T)</option>
+        <option value="pv-v">Producto pV frente al volumen</option>
+      </select>
+    </div>
+    <figure class="grafica">
+      <canvas id="grafica" width="620" height="250" role="img"
+              aria-label="Gráfica de la presión frente al volumen: la curva discontinua es la hipérbola que cumple p·V = n·R·T con las constantes del instante y el punto marcado es el estado actual, 4,0 litros a 311,8 kilopascales."
+              aria-describedby="grafica-nota"></canvas>
+      <figcaption id="grafica-nota">La línea discontinua es la curva que predice <span role="math" aria-label="p por V igual a n por R por T">p·V = n·R·T</span> con las constantes del instante; la línea continua es la trayectoria de las tomas tomadas y el punto marcado es el estado actual. En las gráficas con temperatura el eje horizontal está en grados Celsius y la marca vertical señala el 0 K = −273,15 °C. La trayectoria usa el valor de la ley; las lecturas del manómetro, con su ±5 %, están en la tabla.</figcaption>
+    </figure>
+  </div>
+
+  <div class="columna">
+    <section class="panel" aria-label="Variables de la simulación">
+      <h2>Variables</h2>
+
+      <div class="control">
+        <label for="modo">Modo de laboratorio</label>
+        <select id="modo">
+          <option value="1" selected>Boyle (T y n constantes)</option>
+          <option value="2">Charles (p y n constantes)</option>
+          <option value="3">Gay-Lussac (V y n constantes)</option>
+          <option value="4">Libre (T, V y n)</option>
+        </select>
+      </div>
+
+      <div class="control" id="control-volumen">
+        <label for="volumen">Volumen del gas <span class="unidad">(L)</span> <span class="fija" id="nota-volumen"></span></label>
+        <div class="fila">
+          <input id="volumen" type="range" min="2" max="12" step="0.2" value="4" aria-valuetext="4,0 litros" aria-describedby="nota-volumen">
+          <output class="valor" for="volumen" data-unidad="L" id="volumen-valor">4,0</output>
+        </div>
+      </div>
+
+      <div class="control" id="control-temperatura">
+        <label for="temperatura">Temperatura del gas <span class="unidad">(K)</span> <span class="fija" id="nota-temperatura"></span></label>
+        <div class="fila">
+          <input id="temperatura" type="range" min="200" max="600" step="5" value="300" aria-valuetext="300 kelvin" aria-describedby="nota-temperatura">
+          <output class="valor" for="temperatura" data-unidad="K" id="temperatura-valor">300</output>
+        </div>
+      </div>
+
+      <div class="control" id="control-moles">
+        <label for="moles">Cantidad de gas <span class="unidad">(mol)</span> <span class="fija" id="nota-moles"></span></label>
+        <div class="fila">
+          <input id="moles" type="range" min="0.1" max="1" step="0.05" value="0.5" aria-valuetext="0,50 moles" aria-describedby="nota-moles">
+          <output class="valor" for="moles" data-unidad="mol" id="moles-valor">0,50</output>
+        </div>
+      </div>
+
+      <div class="control">
+        <label for="masa-molar">Gas usado (masa molar) <span class="unidad">(g/mol)</span></label>
+        <div class="fila">
+          <select id="masa-molar">
+            <option value="4">Helio (4,00)</option>
+            <option value="16.04">Metano (16,04)</option>
+            <option value="28.97" selected>Aire (28,97)</option>
+            <option value="39.95">Argón (39,95)</option>
+          </select>
+          <output class="valor" for="masa-molar" data-unidad="g/mol" id="masa-molar-valor">28,97</output>
+        </div>
+      </div>
+
+      <p class="sub" id="nota-modo">Modo Boyle: la temperatura y la cantidad de gas quedan congeladas; tú mueves el volumen y mides la presión.</p>
+
+      <div class="acciones">
+        <button type="button" id="btn-pausar" aria-pressed="false">Pausar</button>
+        <button type="button" id="btn-reiniciar">Reiniciar</button>
+        <button type="button" id="btn-paso">Avanzar 0,05 s</button>
+        <button type="button" id="btn-datos" aria-expanded="false" aria-controls="datos">Ver datos</button>
+        <button type="button" id="btn-punto">Tomar punto</button>
+        <button type="button" id="btn-copiar-lectura">Copiar lectura</button>
+        <button type="button" id="btn-vaciar" aria-label="Vaciar la tabla de datos y borrar la trayectoria de la gráfica">Vaciar tabla</button>
+        <button type="button" id="btn-copiar">Copiar datos</button>
+      </div>
+
+      <div class="control">
+        <label for="velocidad">Ritmo del dibujo <span class="unidad">(×)</span> <span class="fija">(no cambia el gas)</span></label>
+        <div class="fila">
+          <input id="velocidad" type="range" min="0.25" max="2" step="0.25" value="1" aria-valuetext="1 vez">
+          <output class="valor" for="velocidad" data-unidad="×" id="velocidad-valor">1,00</output>
+        </div>
+      </div>
+
+      <p id="estado" role="status" aria-live="polite">Simulación en marcha. Pulsa «Pausar» para detenerla y «Avanzar 0,05 s» para recorrerla paso a paso.</p>
+      <p id="aviso" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <section class="panel" aria-label="Lecturas de la simulación">
+      <h2>Lecturas</h2>
+      <dl class="lecturas">
+        <div id="caja-presion-leida"><dt>Manómetro</dt><dd><output data-observable="presion-leida" data-unidad="kPa" id="lect-p-leida">—</output><span class="unidad"> kPa</span></dd></div>
+        <div id="caja-presion-leida-atm"><dt>Manómetro</dt><dd><output data-observable="presion-leida-atm" data-unidad="atm" id="lect-p-atm">—</output><span class="unidad"> atm</span></dd></div>
+        <div id="caja-presion-ley"><dt>Presión de la ley <span class="fija">(la ecuación, sin error del aparato)</span></dt><dd><output data-observable="presion-ley" data-unidad="kPa" id="lect-p-ley">311,78</output><span class="unidad"> kPa</span></dd></div>
+        <div id="caja-volumen"><dt>Volumen</dt><dd><output data-observable="volumen" data-unidad="L" id="lect-v">4,0</output><span class="unidad"> L</span></dd></div>
+        <div id="caja-temperatura-k"><dt>Termómetro</dt><dd><output data-observable="temperatura-k" data-unidad="K" id="lect-t-k">300,0</output><span class="unidad"> K</span></dd></div>
+        <div id="caja-temperatura-c"><dt>Termómetro</dt><dd><output data-observable="temperatura-c" data-unidad="°C" id="lect-t-c">26,85</output><span class="unidad"> °C</span></dd></div>
+        <div id="caja-producto-pv"><dt>Producto pV<span class="fija" id="nota-pv"></span></dt><dd><output data-observable="producto-pv" data-unidad="kPa·L" id="lect-pv">1247,10</output><span class="unidad"> kPa·L</span></dd></div>
+        <div id="caja-cantidad"><dt>Cantidad de gas</dt><dd><output data-observable="cantidad" data-unidad="mol" id="lect-n">0,50</output><span class="unidad"> mol</span></dd></div>
+        <div id="caja-masa-gas"><dt>Masa del gas</dt><dd><output data-observable="masa-gas" data-unidad="g" id="lect-masa">14,49</output><span class="unidad"> g</span></dd></div>
+        <div id="caja-densidad"><dt>Densidad</dt><dd><output data-observable="densidad" data-unidad="g/L" id="lect-dens">3,62</output><span class="unidad"> g/L</span></dd></div>
+        <div id="caja-velocidad-rms"><dt>Velocidad cuadrática media <span class="fija">(la velocidad típica de las partículas)</span></dt><dd><output data-observable="velocidad-rms" data-unidad="m/s" id="lect-vrms">508,2</output><span class="unidad"> m/s</span></dd></div>
+        <div id="caja-energia-cinetica"><dt>Energía cinética total</dt><dd><output data-observable="energia-cinetica" data-unidad="J" id="lect-ec">1870,65</output><span class="unidad"> J</span></dd></div>
+        <div id="caja-cociente-p-t"><dt>Cociente p/T<span class="fija" id="nota-p-t"></span></dt><dd><output data-observable="cociente-p-t" data-unidad="kPa/K" id="lect-p-t">1,039</output><span class="unidad"> kPa/K</span></dd></div>
+        <div id="caja-cociente-v-t"><dt>Cociente V/T<span class="fija" id="nota-v-t"></span></dt><dd><output data-observable="cociente-v-t" data-unidad="L/K" id="lect-v-t">0,0133</output><span class="unidad"> L/K</span></dd></div>
+        <div id="caja-choques-piston"><dt>Choques contra el pistón <span class="fija">(por segundo · de las 120 bolitas dibujadas, no del gas)</span></dt><dd><output data-observable="choques-piston" data-unidad="1/s" id="lect-choques">0</output><span class="unidad"> /s</span></dd></div>
+        <div id="caja-tiempo"><dt>Tiempo</dt><dd><output data-observable="tiempo" data-unidad="s" id="lect-tiempo">0,0</output><span class="unidad"> s</span></dd></div>
+      </dl>
+      <p class="sub">El manómetro y el termómetro llevan un error de ±5 % y ±0,5 K: son la lectura del instrumento. Las casillas «de la ley», el producto pV y los cocientes se calculan con la ecuación, sin ese error. De los tres productos y cocientes solo uno es constante en cada modo: <em>pV</em> en Boyle, <em>V/T</em> en Charles y <em>p/T</em> en Gay-Lussac; cada casilla lo dice en su etiqueta. Las casillas con el borde azul son las tres que importan en el modo actual: las que definen o mantiene esa ley.</p>
+      <p class="sub" id="aviso-copiar" role="status" aria-live="polite"></p>
+      <div id="datos" hidden>
+        <div id="puntos">
+          <h3>Puntos tomados</h3>
+          <p class="sub">Cada «Tomar punto» añade una línea con todas sus etiquetas: un punto por experimento, sin el goteo de la tabla de datos.</p>
+          <ol id="puntos-lista"></ol>
+        </div>
+        <div class="envolver-tabla">
+          <table id="tabla-datos">
+            <caption>Últimas 40 tomas de las <strong>900 que guarda la simulación</strong> —7,5 minutos de tiempo simulado—, registradas cada 0,25 s, una por cada refresco del manómetro. El botón «Copiar datos» exporta todas las guardadas, no solo las 40 de la tabla. Pulsa «Vaciar tabla» al empezar cada experimento, o copia antes de pasar al siguiente.</caption>
+            <thead>
+              <tr>
+                <th scope="col">t (s)</th>
+                <th scope="col">modo</th>
+                <th scope="col">V (L)</th>
+                <th scope="col">T (K)</th>
+                <th scope="col">T (°C)</th>
+                <th scope="col">n (mol)</th>
+                <th scope="col">gas (g/mol)</th>
+                <th scope="col">p leída (kPa)</th>
+                <th scope="col">p ley (kPa)</th>
+                <th scope="col">pV (kPa·L)</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-cuerpo"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel texto" aria-label="Qué observar">
+      <h2>Qué observar</h2>
+      <p class="sub">En 30 minutos se hacen la <strong>1</strong>, la <strong>2</strong>, la <strong>4</strong> y la <strong>6</strong>; las demás son de la segunda sesión. Empieza cada apartado pulsando <strong>«Reiniciar»</strong>, que deja 0,50 mol, 4,0 L y 300 K. Cuando la presión pasa de 4 atm sale un aviso rojo: es la presión de seguridad de la jeringa, no un fallo tuyo. Si no sabes por dónde empezar, abre la guía de 30 minutos: es la secuencia literal de clics.</p>
+      <details>
+        <summary>Guía de 30 minutos (clic a clic)</summary>
+        <ol>
+          <li><strong>Arranque.</strong> Pulsa <strong>«Reiniciar»</strong>: 0,50 mol de aire, 4,0 L, 300 K, modo Boyle.</li>
+          <li><strong>Boyle y pV.</strong> Pasa el pistón de 8,0 L a 4,0 L y luego a 2,0 L, y pulsa <strong>«Tomar punto»</strong> en cada volumen: la casilla «Producto pV» se mantiene en 1247,10 kPa·L mientras la presión va de 623,55 a 207,85 kPa.</li>
+          <li><strong>El ruido del manómetro.</strong> En 4,0 L pulsa <strong>«Pausar»</strong> y después <strong>«Avanzar 0,05 s»</strong> cinco veces: cada pulsación da una lectura nueva del manómetro. Compara la media de las cinco «p leída» de la tabla con «Presión de la ley».</li>
+          <li><strong>Dos montajes.</strong> Cambia al modo Gay-Lussac y sube de 300 K a 450 K: la presión llega a 467,66 kPa. Vuelve a 300 K, cambia al modo Charles y sube otra vez a 450 K: la presión se queda en 311,78 kPa y el pistón pasa a 6,00 L.</li>
+          <li><strong>Cierre: el gas no importa.</strong> En modo libre, con 0,50 mol, 300 K y 4,0 L, cambia de helio a argón: «Presión de la ley» sigue en 311,78 kPa; lo que cambia es la velocidad de las partículas.</li>
+        </ol>
+      </details>
+      <ol>
+        <li><strong>Boyle.</strong> <span class="sesion">(1ª sesión)</span> Con 0,50 mol a 300 K, pasa el pistón de 8,0 L a 4,0 L: la casilla <strong>«Presión de la ley»</strong> pasa de 155,9 kPa a 311,78 kPa, el doble. Mira «Producto pV»: vale 1247,10 kPa·L en las dos tomas. Comprueba ahora que de 2,0 L a 6,0 L la presión cae a la tercera parte (623,55 → 207,85 kPa).</li>
+        <li><strong>La lectura no es el valor de la ley.</strong> <span class="sesion">(1ª sesión)</span> Quédate quieto en 4,0 L. Pulsa <strong>«Pausar»</strong> y después <strong>«Avanzar 0,05 s»</strong> cinco veces: cada pulsación da una lectura nueva del manómetro y añade una fila a la tabla (botón <strong>«Ver datos»</strong>). Haz la media de las cinco filas de la columna <strong>«p leída»</strong> y compárala con la casilla «Presión de la ley». Ese ±5 % es el error del instrumento, no un fallo de la ley.</li>
+        <li><strong>Charles.</strong> <span class="sesion">(2ª sesión)</span> Cambia a modo Charles con el estado inicial (4,0 L, 300 K) y sube la temperatura de 300 K a 600 K: el pistón pasa de 4,0 L a 8,0 L y la presión no se mueve. El cociente V/T queda en 0,0133 L/K en toda la barra. Baja a 200 K: el pistón se queda en 2,67 L, dentro del cilindro.</li>
+        <li><strong>Gay-Lussac.</strong> <span class="sesion">(1ª sesión)</span> Cambia al modo Gay-Lussac en 4,0 L y pasa de 200 K a 400 K: «Presión de la ley» se duplica (207,85 → 415,70 kPa) y «Cociente p/T» no cambia (1,039 kPa/K). Sube de 300 K a 450 K: sube exactamente un 50 %, hasta 467,66 kPa.</li>
+        <li><strong>La masa molar no cuenta.</strong> <span class="sesion">(2ª sesión)</span> En modo libre, con 0,50 mol, 300 K y 4,0 L, cambia de gas y mira la casilla <strong>«Presión de la ley»</strong>: da 311,78 kPa con helio, con aire y con argón. Lo que sí cambia es la velocidad de las partículas (1368 m/s con helio, 508 con aire, 433 con argón), la densidad en g/L y la masa del gas (14,5 g de aire, 20,0 g de argón). El <em>visor</em> del manómetro no da el mismo número tres veces: sube y baja alrededor de 311,8 kPa porque ese es el error del aparato, no el del gas.</li>
+        <li><strong>Comprimir no calienta.</strong> <span class="sesion">(1ª sesión)</span> En modo Boyle, pasa de 8,0 L a 2,0 L: «Presión de la ley» se triplica (155,9 → 623,55 kPa), la velocidad cuadrática media sigue en 508 m/s y la energía cinética total en 1870,65 J. En el modelo lo que aumenta es el número de choques por segundo contra la pared, no la velocidad de cada choque. Para verlo, baja el «Ritmo del dibujo» a ×0,25 y compara con ×2.</li>
+        <li><strong>Más gas no es más volumen.</strong> <span class="sesion">(2ª sesión)</span> En modo libre, con 4,0 L y 300 K, sube la cantidad de gas de 0,50 a 1,00 mol: «Presión de la ley» pasa de 311,78 a 623,55 kPa y <strong>el pistón no se mueve</strong>: el volumen sigue en 4,00 L. Duplicar el gas duplica la presión, no el volumen; el volumen solo cambia si lo mueves tú (o si el modo es Charles).</li>
+      </ol>
+    </section>
+
+    <section class="panel texto retos" aria-label="Retos">
+      <h2>Retos</h2>
+      <p class="sub">Escribe tu predicción <strong>antes</strong> de tocar nada y pulsa «Comprobar predicción»: te dice si aciertas comparando con la presión de la ley y con el margen de error del manómetro.</p>
+      <div class="control">
+        <label for="prediccion">Tu predicción de presión <span class="unidad">(kPa)</span></label>
+        <input id="prediccion" type="number" min="0" max="2500" step="1" inputmode="decimal" value="">
+      </div>
+      <div class="acciones">
+        <button id="btn-comprobar" type="button">Comprobar predicción</button>
+      </div>
+      <p id="aviso-prediccion" role="status" aria-live="polite"></p>
+      <ol>
+        <li><strong>Reto 1 · La temperatura que falta.</strong> <span class="sesion">(4º ESO · 2ª sesión)</span> En modo Charles, toma tres puntos (T, V) entre 200 K y 600 K, ajusta la recta V = a·T y extrapola hasta V = 0: ¿en qué temperatura en grados Celsius corta el eje? Compáralo con −273 °C.
+          <div class="acciones"><button type="button" id="btn-reto-1">Comprobar reto 1</button></div>
+          <p class="sub" id="aviso-reto-1" role="status" aria-live="polite"></p>
+          <details><summary>Comprobación</summary><p>Con la presión fija, V/T = n·R/p es constante, así que la recta pasa por el origen de la escala kelvin y corta el eje de grados Celsius en −273,15 °C.</p></details>
+        </li>
+        <li><strong>Reto 2 · Presión que no cambia.</strong> <span class="sesion">(2ª sesión)</span> En modo libre, predice qué hará la presión al pasar de 4,0 L y 300 K a 6,0 L y 450 K con 0,50 mol. Escribe el número en «Tu predicción de presión», compruébalo y solo entonces mueve los deslizadores. Explica por qué sale lo que sale.
+          <div class="acciones"><button type="button" id="btn-reto-2">Comprobar reto 2</button></div>
+          <p class="sub" id="aviso-reto-2" role="status" aria-live="polite"></p>
+          <details><summary>Comprobación</summary><p>0,50 × 8,314 × 450 / 6,0 = 311,78 kPa, igual que el estado inicial: al subir la temperatura un 50 % y el volumen un 50 %, los dos efectos se cancelan.</p></details>
+        </li>
+        <li><strong>Reto 3 · Mismo calor, dos montajes.</strong> <span class="sesion">(2ª sesión)</span> Mismo gas y mismo estado inicial (0,50 mol, 4,0 L, 300 K): baja la temperatura a 300 K si no lo está y cambia de modo. Calienta hasta 450 K una vez con el pistón bloqueado (Gay-Lussac) y otra con el pistón libre (Charles). Predice la presión de cada caso antes de medir. Explica con los números por qué en un caso sube un 50 % y en el otro no sube nada.
+          <div class="acciones"><button type="button" id="btn-reto-3">Comprobar reto 3</button></div>
+          <p class="sub" id="aviso-reto-3" role="status" aria-live="polite"></p>
+          <details><summary>Comprobación</summary><p>Con el pistón bloqueado el volumen queda en 4,00 L y la presión sube a 467,66 kPa. Con el pistón libre la presión se mantiene en 311,78 kPa y lo que sube un 50 % es el volumen, hasta 6,00 L.</p></details>
+        </li>
+        <li><strong>Reto 4 · Se equivoca el aparato, no la ley.</strong> <span class="sesion">(2ª sesión)</span> Demuestra con datos que la masa molar no afecta a la presión: mide con helio y con argón a 0,50 mol, 300 K y 4,0 L. Con la simulación <strong>pausada</strong>, pulsa «Avanzar 0,05 s» cinco veces en cada gas y apunta las cinco filas de la columna «p leída» de la tabla. Haz la media de cada gas y calcula la diferencia porcentual entre las dos medias. Cada media tiene una banda de ±1,3 %, así que la diferencia debe quedar por debajo del 4 %; si sale mayor, no has promediado bien.
+          <div class="acciones"><button type="button" id="btn-reto-4">Comprobar reto 4</button></div>
+          <p class="sub" id="aviso-reto-4" role="status" aria-live="polite"></p>
+          <details><summary>Comprobación</summary><p>La presión de la ley es 311,78 kPa con los dos gases: la diferencia entre las dos medias sale solo del ±5 % del manómetro. Para una media más apretada, usa más filas de la tabla.</p></details>
+        </li>
+      </ol>
+    </section>
+
+    <section class="panel texto" aria-label="Qué necesitas saber antes">
+      <h2>Qué necesitas saber antes</h2>
+      <details>
+        <summary>Lo que se da por sabido (y lo que no hace falta)</summary>
+        <ul>
+          <li><strong>Mol y masa molar.</strong> El mol cuenta cantidad de partículas; la masa molar (g/mol) es lo que pesa un mol. Aquí hay cuatro gases: helio 4, metano 16,04, aire 28,97 y argón 39,95 g/mol.</li>
+          <li><strong>Escala kelvin.</strong> La temperatura va en kelvin; 0 K = −273,15 °C y un kelvin vale lo mismo que un grado Celsius, así que para pasar de K a °C se resta 273,15.</li>
+          <li><strong>Presión.</strong> Se mide en kPa y 1 atm = 101,325 kPa. El estado de arranque, 311,78 kPa, son 3,08 atm.</li>
+          <li><strong>Proporcionalidades y media.</strong> Hay que despejar de p·V = n·R·T (p = n·R·T / V), calcular un cociente como p/T y hacer la media de cinco números.</li>
+          <li><strong>Extrapolar</strong>, solo en el reto 1: prolongar la recta ajustada más allá de los puntos medidos hasta que corte el eje.</li>
+          <li><strong>No hace falta teclear símbolos matemáticos.</strong> Todo se toca con deslizadores, listas y botones; en el campo de predicción se escribe un número normal.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="panel texto" aria-label="Supuestos y límites del modelo">
+      <h2>Supuestos del modelo</h2>
+      <p class="sub">Lo que la simulación da por bueno, en cuatro frases:</p>
+      <ul>
+        <li>Las bolitas son una <strong>muestra de 120</strong>, no la cantidad de gas: la presión se calcula con n, no contando choques.</li>
+        <li>El <strong>pistón no roza</strong> ni pesa, y el gas se equilibra al instante de mover el deslizador.</li>
+        <li>El <strong>manómetro se equivoca un ±5 %</strong> y el <strong>termómetro un ±0,5 K</strong>; la ecuación, no.</li>
+        <li>Por encima de <strong>4-5 atm</strong> esto ya no es una jeringa de plástico: hace falta un cilindro metálico y la pantalla lo avisa.</li>
+      </ul>
+      <details>
+        <summary>Los doce supuestos, uno por uno</summary>
+      <ul>
+        <li><strong>Gas ideal.</strong> Las partículas son puntuales, los choques son perfectamente elásticos y no hay fuerzas entre moléculas fuera del choque. El aire real se desvía poco donde se hace la experiencia (≈3 atm a 300 K: menos del 0,1 %) y casi nada en la esquina caliente (24,6 atm a 600 K: unos 300 K más caliente, +1 %). La esquina fría y densa —1,00 mol en 2,0 L a 200 K, 8,2 atm— es la peor del rango: ahí el aire real se queda en torno al 94-96 % de la presión ideal, una desviación del mismo orden que el ±5 % del manómetro, así que en ese rincón no se puede separar el error del gas real del error del instrumento.</li>
+        <li><strong>Siempre gas.</strong> El helio, el metano, el aire y el argón están por encima de su temperatura crítica entre 200 K y 600 K, así que son gas a todas las presiones de la simulación. El CO₂ quedó fuera del listado porque a 200 K su presión de sublimación es solo 1,5 bar (154 kPa) y la simulación baja hasta 14 kPa: en buena parte del rango sería sólido.</li>
+        <li><strong>Gas seco.</strong> El modelo es aire seco en todo el rango. Por debajo de 273,15 K el agua del aire real se condensaría y deja de contar, así que ahí la aproximación es buena; por encima, la humedad real añade alrededor de un 1 % de presión que el modelo ignora.</li>
+        <li><strong>Pistón ideal.</strong> El pistón no roza, no pesa y se mueve al instante, sin inercia ni onda de presión: la presión es la misma en todo el cilindro.</li>
+        <li><strong>Topes del pistón en modo Charles.</strong> El pistón sólo cabe entre 2,0 L y 12,0 L, así que la ley V = (V₀/T₀)·T se puede recorrer mientras el pistón no toque un tope. Al entrar en el modo, el deslizador de temperatura se recorta a la ventana T en [máx(200, 2·T₀/V₀), mín(600, 12·T₀/V₀)], con T₀ y V₀ el estado congelado. Con el estado inicial la ventana es todo el deslizador. Si queda vacía o en un solo punto —por ejemplo con 12,0 L y 200 K— el pistón está clavado en un tope y la simulación avisa «sin recorrido: el pistón en el tope» en lugar de dejar que veas subir la presión dentro de un modo que se llama Charles.</li>
+        <li><strong>Temperatura instantánea.</strong> Al mover el deslizador el gas se equilibra al momento; en el montaje real eso tarda decenas de segundos.</li>
+        <li><strong>Las partículas son una muestra.</strong> Se dibujan siempre unas 120, sea cual sea n: lo que cambia con n y con V es su separación, no su cantidad. Sirven para ver la densidad y el ritmo de los choques; la presión se calcula con n, no contando choques: la fracción de partículas que tocan una pared en un instante fluctúa con desviación típica 1/√120 = 9 %, y ese ruido taparía la ley.</li>
+        <li><strong>Velocidades a escala.</strong> Las velocidades dibujadas son la velocidad cuadrática media real, v_rms = √(3RT/M), escalada al lienzo; el cilindro no está a escala.</li>
+        <li><strong>Error en el instrumento.</strong> La lectura del manómetro lleva ±5 % y la del termómetro ±0,5 K, aplicados a la lectura, no al cálculo. El producto pV y los cocientes p/T y V/T se calculan con el valor de la ley.</li>
+        <li><strong>La velocidad de animación no es física.</strong> El deslizador «Ritmo del dibujo» cambia el ritmo del dibujo; la presión y la v_rms no dependen de ella.</li>
+        <li><strong>Manómetro digital.</strong> La presión recorre de 13,9 a 2494 kPa, un rango de 180:1 que un indicador analógico de aguja no se puede leer; por eso la lectura es numérica con barra.</li>
+        <li><strong>Montaje de clase.</strong> En el laboratorio esto es una jeringa de 20-50 mL con manómetro digital: por encima de 4-5 atm la jeringa de plástico cede. Cuando la presión de la simulación supera ese tope, la pantalla avisa de que ese punto exige un cilindro metálico y no es un montaje de ESO.</li>
+      </ul>
+      </details>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <p class="atajos">Atajos de teclado: <kbd>Espacio</kbd> pausar o iniciar · <kbd>R</kbd> reiniciar · <kbd>M</kbd> menos movimiento · <kbd>T</kbd> tema oscuro. Dentro de un deslizador las flechas valen 1 paso; <kbd>Inicio</kbd> y <kbd>Fin</kbd> valen el mínimo y el máximo, y <kbd>RePág</kbd>/<kbd>AvPág</kbd> valen 10 pasos, mucho más rápido que ir pulsando la flecha.</p>
+  <p>Modelo: <span role="math" aria-label="p por V igual a n por R por T">p·V = n·R·T</span> con p en kPa, V en L, n en mol, T en K y R = 8,314 J/(mol·K); por eso p[kPa] = n·R·T / V[L] y 1 kPa·L = 1 J. La velocidad cuadrática media es v_rms = √(3RT/M) y la energía cinética total del gas vale (3/2)·n·R·T. Las partículas se mueven en línea recta y chocan de forma elástica entre sí y con las paredes. En el gas de verdad la presión <strong>sí</strong> sale de los choques; aquí el número del manómetro está calculado con la ecuación y no contando choques, porque contando 120 bolitas dibujadas el ruido sería del 9 % y taparía la ley. Simulación autocontenida: funciona sin conexión. Accesible por diseño (tema oscuro, alto contraste, texto ampliable, teclado y lector de pantalla), sin certificación WCAG formal: la conformidad completa requiere revisión humana.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict'
+
+  /* ---------------- constantes ---------------- */
+  const SIM_ID = 'gases-ideales'
+  const R = 8.314
+  const ATM = 101.325
+  const CERO_K = -273.15
+  const N_PARTICULAS = 120
+  const DT_MAXIMO = 0.05
+  const DT_PARTICULA = 0.02
+  const MUESTRA_CADA = 0.25
+  const LECTURA_CADA = 0.25
+  // El panel de lecturas se refresca a 10 Hz: a 60 Hz los números parpadean y
+  // el lector de pantalla no los alcanza a leer.
+  const REFRESCO_PANEL = 0.1
+  const RUIDO_P = 0.05
+  const RUIDO_T = 0.5
+  const P_TOPE = 4 * ATM
+  const V_MIN = 2
+  const V_MAX = 12
+  const T_MIN = 200
+  const T_MAX = 600
+  const T_PASO = 5
+  const P_ESCALA = 2500
+  // 31 px por litro: a 12 L el pistón deja sitio para el vástago y su manopla.
+  const PX_POR_LITRO = 31
+  const MANOMETRO_X = 512
+  const CILINDRO_X = 78
+  const CILINDRO_Y = 150
+  const CILINDRO_ALTO = 150
+  const ESCENA_ANCHO = 620
+  const ESCENA_ALTO = 450
+  const GRAFICA_ANCHO = 620
+  const GRAFICA_ALTO = 250
+  const RADIO = 2.2
+  const FACTOR_PX = 0.24
+  const CADENCIA_ANUNCIO = 5
+
+  const NOMBRE_MODO = { 1: 'Boyle', 2: 'Charles', 3: 'Gay-Lussac', 4: 'libre' }
+  const NOMBRE_GAS = { 4: 'helio', 16.04: 'metano', 28.97: 'aire', 39.95: 'argón' }
+
+  const el = (id) => document.getElementById(id)
+  const root = document.documentElement
+
+  const PREFS = {
+    tema: 'sim:' + SIM_ID + ':tema',
+    contraste: 'sim:' + SIM_ID + ':contraste',
+    fs: 'sim:' + SIM_ID + ':fs',
+    movimiento: 'sim:' + SIM_ID + ':movimiento'
+  }
+
+  function leerPref(clave, porDefecto) {
+    try {
+      const valor = localStorage.getItem(clave)
+      return valor === null ? porDefecto : valor
+    } catch (error) {
+      return porDefecto
+    }
+  }
+  function guardarPref(clave, valor) {
+    try { localStorage.setItem(clave, valor) } catch (error) { /* almacenamiento no disponible */ }
+  }
+  function numero(valor, porDefecto) {
+    const n = Number(valor)
+    return Number.isFinite(n) ? n : porDefecto
+  }
+  function fmt(n, decimales) {
+    if (!Number.isFinite(n)) return 'no definido'
+    return n.toFixed(decimales).replace('.', ',')
+  }
+  function limitar(v, minimo, maximo) {
+    return Math.max(minimo, Math.min(maximo, v))
+  }
+  const coincideMedia = (consulta) => {
+    try { return window.matchMedia(consulta).matches } catch (error) { return false }
+  }
+
+  /* ---------------- generadores aleatorios ----------------
+     Dos streams deterministas: el del instrumento (para que el error de
+     lectura sea reproducible) y el de las partículas. */
+  const MODULO = 2147483647
+  const MULTIPLICADOR = 48271
+  let semillaInstrumento = 20240915
+  let semillaParticulas = 1357987
+
+  function siguiente(stream) {
+    stream.valor = (stream.valor * MULTIPLICADOR) % MODULO
+    return stream.valor / MODULO
+  }
+  const instrumento = { valor: semillaInstrumento }
+  const particulasSeed = { valor: semillaParticulas }
+  function ruido(amplitud) {
+    return (siguiente(instrumento) * 2 - 1) * amplitud
+  }
+  function alAzar() {
+    return siguiente(particulasSeed)
+  }
+
+  /* ---------------- modelo científico ----------------
+     Funciones puras: entradas → números. La vista solo dibuja esto. */
+  const modelo = {
+    presion(n, T, V) { return (n * R * T) / V },
+    volumen(n, T, p) { return (n * R * T) / p },
+    vrms(T, M) { return Math.sqrt((3 * R * T) / (M / 1000)) },
+    energia(n, T) { return 1.5 * n * R * T },
+    densidad(n, M, V) { return (n * M) / V },
+    masa(n, M) { return n * M },
+    producto(n, T) { return n * R * T }
+  }
+
+  /* ---------------- estado ---------------- */
+  const INICIAL = { modo: 1, V: 4, T: 300, n: 0.5, M: 28.97, velocidad: 1 }
+  const st = { modo: 1, V: 4, T: 300, n: 0.5, M: 28.97, velocidad: 1 }
+  const fijo = { T: 300, n: 0.5, V: 4, p: (0.5 * R * 300) / 4 }
+  const lectura = { p: NaN, T: NaN }
+  const ventana = { min: T_MIN, max: T_MAX, degenerada: false }
+
+  let t = 0
+  let running = true
+  let muestras = []
+  let siguienteMuestra = 0
+  let siguienteLectura = 0
+  let siguienteRefresco = 0
+  let relojAnuncios = 0
+  let etiquetaEscenaPrevia = ''
+  let etiquetaGraficaPrevia = ''
+
+  function nActiva() { return st.modo === 4 ? st.n : fijo.n }
+  function tActiva() { return st.modo === 1 ? fijo.T : st.T }
+
+  function estadoModelo() {
+    const n = nActiva()
+    const M = st.M
+    const T = tActiva()
+    let V
+    let p
+    if (st.modo === 2) {
+      p = fijo.p
+      V = limitar(modelo.volumen(n, T, p), V_MIN, V_MAX)
+    } else if (st.modo === 3) {
+      V = fijo.V
+      p = modelo.presion(n, T, V)
+    } else {
+      V = st.V
+      p = modelo.presion(n, T, V)
+    }
+    const e = {
+      modo: st.modo,
+      n: n,
+      M: M,
+      T: T,
+      V: V,
+      p: p,
+      pV: modelo.producto(n, T),
+      vrms: modelo.vrms(T, M),
+      ec: modelo.energia(n, T),
+      dens: modelo.densidad(n, M, V),
+      masa: modelo.masa(n, M)
+    }
+    /* El tope solo es un problema si el pistón se ha quedado clavado al mover la
+       temperatura; en el estado congelado de entrada V es exactamente V₀. */
+    e.pEnTope = st.modo === 2 && e.T !== fijo.T && (V <= V_MIN + 1e-9 || V >= V_MAX - 1e-9)
+    return e
+  }
+
+  function nuevaLectura() {
+    const e = estadoModelo()
+    lectura.p = e.p * (1 + ruido(RUIDO_P))
+    lectura.T = e.T + ruido(RUIDO_T)
+    if (!Number.isFinite(lectura.p)) lectura.p = e.p
+    if (!Number.isFinite(lectura.T)) lectura.T = e.T
+  }
+
+  /* ---------------- ventana de temperatura del modo Charles ---------------- */
+  function calcularVentana(T0, V0) {
+    const min = Math.max(T_MIN, Math.ceil((2 * T0 / V0) / T_PASO) * T_PASO)
+    const max = Math.min(T_MAX, Math.floor((12 * T0 / V0) / T_PASO) * T_PASO)
+    return { min: min, max: max, degenerada: min >= max }
+  }
+
+  function aplicarVentana() {
+    const slider = el('temperatura')
+    if (st.modo === 2) {
+      slider.setAttribute('min', String(ventana.min))
+      slider.setAttribute('max', String(ventana.max))
+      slider.setAttribute('step', String(T_PASO))
+      const valor = limitar(numero(slider.value, st.T), ventana.min, ventana.max)
+      st.T = valor
+      slider.value = String(valor)
+    } else {
+      slider.setAttribute('min', String(T_MIN))
+      slider.setAttribute('max', String(T_MAX))
+      slider.setAttribute('step', String(T_PASO))
+    }
+  }
+
+  /* ---------------- partículas ---------------- */
+  const particulas = []
+  // Choques de las bolitas dibujadas contra el pistón: ventana de 1 s para la
+  // tasa. Es una muestra de 120, no el gas entero: la casilla lo dice.
+  const choquesPiston = { eventos: [], tasa: 0 }
+  function registrarChoquePiston() {
+    choquesPiston.eventos.push(t)
+    while (choquesPiston.eventos.length > 0 && choquesPiston.eventos[0] < t - 1) choquesPiston.eventos.shift()
+    choquesPiston.tasa = choquesPiston.eventos.length
+  }
+
+  function pistonXDe(V) { return CILINDRO_X + V * PX_POR_LITRO }
+
+  function regionGas(V) {
+    const x1 = pistonXDe(V) - 4
+    return { x0: CILINDRO_X + 4, x1: Math.max(CILINDRO_X + 6, x1), y0: CILINDRO_Y + 4, y1: CILINDRO_Y + CILINDRO_ALTO - 4 }
+  }
+
+  function crearParticulas(V, objetivo) {
+    particulas.length = 0
+    const r = regionGas(V)
+    for (let i = 0; i < N_PARTICULAS; i += 1) {
+      const angulo = alAzar() * 2 * Math.PI
+      particulas.push({
+        x: r.x0 + alAzar() * (r.x1 - r.x0),
+        y: r.y0 + alAzar() * (r.y1 - r.y0),
+        vx: Math.cos(angulo) * objetivo,
+        vy: Math.sin(angulo) * objetivo
+      })
+    }
+  }
+
+  function ajustarVelocidades(objetivo) {
+    if (particulas.length === 0) return
+    let suma = 0
+    for (const q of particulas) suma += q.vx * q.vx + q.vy * q.vy
+    const rms = Math.sqrt(suma / particulas.length)
+    if (!Number.isFinite(rms) || rms <= 0) {
+      for (const q of particulas) { q.vx = objetivo; q.vy = 0 }
+      return
+    }
+    const k = objetivo / rms
+    for (const q of particulas) { q.vx *= k; q.vy *= k }
+  }
+
+  function reescalarPosiciones(VAnterior, VNuevo) {
+    const anchoAnterior = pistonXDe(VAnterior) - CILINDRO_X - 8
+    const anchoNuevo = pistonXDe(VNuevo) - CILINDRO_X - 8
+    if (!(anchoAnterior > 0) || !(anchoNuevo > 0)) return
+    const k = anchoNuevo / anchoAnterior
+    const r = regionGas(VNuevo)
+    for (const q of particulas) {
+      q.x = r.x0 + (q.x - r.x0) * k
+      q.x = limitar(q.x, r.x0, r.x1)
+      q.y = limitar(q.y, r.y0, r.y1)
+    }
+  }
+
+  function chocar(a, b) {
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const distancia2 = dx * dx + dy * dy
+    const minimo = 2 * RADIO
+    if (distancia2 > minimo * minimo || distancia2 <= 0) return
+    const distancia = Math.sqrt(distancia2)
+    const nx = dx / distancia
+    const ny = dy / distancia
+    const normal = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny
+    if (normal < 0) {
+      a.vx += normal * nx
+      a.vy += normal * ny
+      b.vx -= normal * nx
+      b.vy -= normal * ny
+    }
+    const solape = (minimo - distancia) / 2
+    if (solape > 0) {
+      a.x -= nx * solape
+      a.y -= ny * solape
+      b.x += nx * solape
+      b.y += ny * solape
+    }
+  }
+
+  function avanzarParticulas(dt) {
+    if (particulas.length === 0 || !(dt > 0)) return
+    const e = estadoModelo()
+    const r = regionGas(e.V)
+    const subpasos = Math.min(8, Math.max(1, Math.ceil(dt / DT_PARTICULA)))
+    const h = dt / subpasos
+    for (let s = 0; s < subpasos; s += 1) {
+      for (const q of particulas) {
+        q.x += q.vx * h
+        q.y += q.vy * h
+        if (q.x < r.x0) { q.x = r.x0; q.vx = Math.abs(q.vx) }
+        else if (q.x > r.x1) { q.x = r.x1; q.vx = -Math.abs(q.vx); registrarChoquePiston() }
+        if (q.y < r.y0) { q.y = r.y0; q.vy = Math.abs(q.vy) }
+        else if (q.y > r.y1) { q.y = r.y1; q.vy = -Math.abs(q.vy) }
+      }
+      for (let i = 0; i < particulas.length; i += 1) {
+        for (let j = i + 1; j < particulas.length; j += 1) chocar(particulas[i], particulas[j])
+      }
+    }
+    for (const q of particulas) {
+      if (!Number.isFinite(q.x) || !Number.isFinite(q.y) || !Number.isFinite(q.vx) || !Number.isFinite(q.vy)) {
+        q.x = r.x0 + 1
+        q.y = r.y0 + 1
+        q.vx = FACTOR_PX * 100
+        q.vy = 0
+      }
+    }
+  }
+
+  /* ---------------- lienzo ---------------- */
+  function lienzo(id, ancho, alto) {
+    const c = el(id)
+    if (!c || typeof c.getContext !== 'function') return null
+    const ctx = c.getContext('2d')
+    if (!ctx) return null
+    const dpr = Number.isFinite(window.devicePixelRatio) ? Math.min(2, Math.max(1, window.devicePixelRatio)) : 1
+    // El canvas ocupa el 100 % del hueco, así que el tamaño lógico hay que
+    // ajustarlo al ancho real: con el ancho fijo los trazos salían estirados.
+    const css = numero(c.clientWidth, 0)
+    const k = css > 0 ? (css * dpr) / ancho : dpr
+    const anchoLienzo = Math.round(ancho * k)
+    const altoLienzo = Math.round(alto * k)
+    if (c.width !== anchoLienzo || c.height !== altoLienzo) {
+      c.width = anchoLienzo
+      c.height = altoLienzo
+    }
+    ctx.setTransform(k, 0, 0, k, 0, 0)
+    return ctx
+  }
+
+  const RESERVA = {
+    bg: '#ffffff', fg: '#14181f', muted: '#566070', line: '#6f7a88',
+    accent: '#1a5fd0', accent2: '#b3541e', ok: '#1c7a4a', warn: '#a4400f',
+    scene: '#ffffff', grid: '#c9d2de', panel2: '#eef2f7'
+  }
+  function paleta() {
+    const p = {}
+    const claves = {
+      bg: '--bg', scene: '--scene-bg', fg: '--fg', muted: '--muted', line: '--line',
+      accent: '--accent', accent2: '--accent-2', ok: '--ok', warn: '--warn',
+      grid: '--grid', panel2: '--panel-2'
+    }
+    let cs = null
+    try {
+      if (typeof window.getComputedStyle === 'function') cs = window.getComputedStyle(root)
+    } catch (error) {
+      cs = null
+    }
+    for (const k in claves) {
+      let valor = RESERVA[k]
+      try {
+        const leido = cs ? cs.getPropertyValue(claves[k]) : ''
+        if (typeof leido === 'string' && leido.trim().length > 0) valor = leido.trim()
+      } catch (error) {
+        valor = RESERVA[k]
+      }
+      p[k] = valor
+    }
+    return p
+  }
+  function factorFuente() {
+    let fs = 1
+    try {
+      const declarado = root.style.getPropertyValue('--fs')
+      const leido = declarado ? numero(String(declarado).replace('rem', ''), 1) : 1
+      fs = limitar(leido, 0.8, 1.6)
+    } catch (error) {
+      fs = 1
+    }
+    return fs
+  }
+  function texto(ctx, pal, x, y, cadena, tam, color, alineacion) {
+    ctx.font = (tam * factorFuente()) + 'px system-ui, sans-serif'
+    ctx.fillStyle = color
+    ctx.textAlign = alineacion ?? 'left'
+    ctx.textBaseline = 'alphabetic'
+    ctx.fillText(cadena, x, y)
+  }
+
+  /* ---------------- escena ---------------- */
+  function dibujarEscena() {
+    const ctx = lienzo('escena', ESCENA_ANCHO, ESCENA_ALTO)
+    if (!ctx) return
+    const pal = paleta()
+    const e = estadoModelo()
+    const fs = factorFuente()
+    // El canvas se estrecha al encoger la ventana: con 11 px los rótulos quedaban
+    // en 6-7 px reales en una pantalla de Chromebook.
+    const pequeno = 13
+    const normal = 15
+
+    ctx.clearRect(0, 0, ESCENA_ANCHO, ESCENA_ALTO)
+    ctx.fillStyle = pal.scene
+    ctx.fillRect(0, 0, ESCENA_ANCHO, ESCENA_ALTO)
+
+    const pistonX = pistonXDe(e.V)
+    const hc = root.getAttribute('data-contraste') === 'alto'
+    const trazo = hc ? 3 : 1.5
+
+    // Gas: la opacidad sube al comprimir (ilustrativa, no es densidad a escala)
+    ctx.fillStyle = pal.accent
+    const opacidadGas = 0.10 + ((V_MAX - e.V) / (V_MAX - V_MIN)) * 0.10
+    ctx.globalAlpha = hc ? 0.25 : opacidadGas
+    ctx.fillRect(CILINDRO_X, CILINDRO_Y, pistonX - CILINDRO_X, CILINDRO_ALTO)
+    ctx.globalAlpha = 1
+
+    // Cilindro
+    ctx.strokeStyle = pal.fg
+    ctx.lineWidth = hc ? 3 : 2.5
+    ctx.beginPath()
+    ctx.moveTo(pistonX, CILINDRO_Y)
+    ctx.lineTo(CILINDRO_X, CILINDRO_Y)
+    ctx.lineTo(CILINDRO_X, CILINDRO_Y + CILINDRO_ALTO)
+    ctx.lineTo(pistonX, CILINDRO_Y + CILINDRO_ALTO)
+    ctx.stroke()
+
+    // Pistón, vástago y manopla: se tiene que leer que el vástago empuja el pistón
+    const largoVastago = Math.max(10, Math.min(56, MANOMETRO_X - (pistonX + 14) - 22))
+    const finVastago = pistonX + 14 + largoVastago
+    const ejePiston = CILINDRO_Y + CILINDRO_ALTO / 2
+    ctx.fillStyle = pal.accent2
+    ctx.fillRect(pistonX, CILINDRO_Y - 8, 14, CILINDRO_ALTO + 16)
+    ctx.fillRect(pistonX + 14, ejePiston - 6, largoVastago, 12)
+    ctx.beginPath()
+    const mRadio = 6
+    const mY0 = ejePiston - 17
+    ctx.moveTo(finVastago, mY0 + mRadio)
+    ctx.arcTo(finVastago, mY0 + 34, finVastago + 16, mY0 + 34, mRadio)
+    ctx.arcTo(finVastago + 16, mY0 + 34, finVastago + 16, mY0, mRadio)
+    ctx.arcTo(finVastago + 16, mY0, finVastago, mY0, mRadio)
+    ctx.arcTo(finVastago, mY0, finVastago, mY0 + mRadio, mRadio)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = pal.fg
+    ctx.lineWidth = trazo
+    ctx.stroke()
+    ctx.strokeRect(pistonX, CILINDRO_Y - 8, 14, CILINDRO_ALTO + 16)
+    ctx.beginPath()
+    ctx.arc(pistonX + 14, ejePiston, 3.5, 0, 2 * Math.PI)
+    ctx.fillStyle = pal.bg
+    ctx.fill()
+    ctx.stroke()
+
+    // Regla de litros
+    const yRegla = CILINDRO_Y + CILINDRO_ALTO + 22
+    ctx.strokeStyle = pal.fg
+    ctx.lineWidth = trazo
+    ctx.beginPath()
+    ctx.moveTo(CILINDRO_X, yRegla)
+    ctx.lineTo(pistonXDe(V_MAX) + 14, yRegla)
+    ctx.stroke()
+    // La fila de mL no puede invadir la separación de 31 px entre marcas:
+    // si la fuente se amplía, se encoge como el visor del manómetro.
+    let cuerpoMl = 10
+    ctx.font = (cuerpoMl * fs) + 'px system-ui, sans-serif'
+    const anchoMl = ctx.measureText('12000').width
+    if (anchoMl > 29) cuerpoMl = Math.max(7, 290 / anchoMl)
+    for (let L = V_MIN; L <= V_MAX; L += 1) {
+      const x = pistonXDe(L)
+      const largo = (L % 2 === 0) ? 9 : 5
+      ctx.beginPath()
+      ctx.moveTo(x, yRegla - largo)
+      ctx.lineTo(x, yRegla + largo)
+      ctx.stroke()
+      texto(ctx, pal, x, yRegla + 22, String(L), 11, (L % 2 === 0) ? pal.fg : pal.muted, 'center')
+      texto(ctx, pal, x, yRegla + 37, String(L * 1000), cuerpoMl, pal.muted, 'center')
+    }
+    texto(ctx, pal, CILINDRO_X, yRegla + 54, 'volumen del gas (L) · la fila de abajo, en mL, como la jeringa real', 11, pal.muted, 'left')
+
+    // Marcador del pistón: se queda por encima de la cifra de la regla para no tacharla
+    ctx.strokeStyle = pal.accent2
+    ctx.lineWidth = hc ? 3.5 : 2.5
+    ctx.beginPath()
+    ctx.moveTo(pistonX, yRegla - 15)
+    ctx.lineTo(pistonX, yRegla + 10)
+    ctx.stroke()
+
+    // Termómetro: tubo rematado, capilar fino y bulbo grande
+    const tx = 30
+    const tAbajo = 300
+    const tArriba = 110
+    const alturaGas = limitar(tAbajo - ((e.T - T_MIN) / (T_MAX - T_MIN)) * (tAbajo - tArriba), tArriba, tAbajo)
+    ctx.strokeStyle = pal.line
+    ctx.lineWidth = trazo
+    ctx.beginPath()
+    ctx.moveTo(tx - 9, tAbajo + 12)
+    ctx.lineTo(tx - 9, tArriba - 4)
+    ctx.arc(tx, tArriba - 4, 9, Math.PI, 0)
+    ctx.lineTo(tx + 9, tAbajo + 12)
+    ctx.stroke()
+    ctx.fillStyle = pal.scene
+    ctx.beginPath()
+    ctx.arc(tx, tArriba - 4, 8, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.fillStyle = pal.accent2
+    ctx.beginPath()
+    ctx.arc(tx, tAbajo + 12, 12, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.strokeStyle = pal.fg
+    ctx.stroke()
+    ctx.fillRect(tx - 2.5, alturaGas, 5, tAbajo + 12 - alturaGas)
+    ctx.lineWidth = trazo
+    for (let K = T_MIN; K <= T_MAX; K += 50) {
+      const y = tAbajo - ((K - T_MIN) / (T_MAX - T_MIN)) * (tAbajo - tArriba)
+      const largo = (K % 100 === 0) ? 9 : 4
+      ctx.beginPath()
+      ctx.moveTo(tx + 10, y)
+      ctx.lineTo(tx + 10 + largo, y)
+      ctx.stroke()
+      if (K % 100 === 0) texto(ctx, pal, tx + 21, y + 4, String(K), pequeno, pal.muted, 'left')
+    }
+    texto(ctx, pal, tx - 11, tArriba - 34, 'termómetro', pequeno, pal.muted, 'left')
+    texto(ctx, pal, tx - 11, tArriba - 20, '(kelvin)', pequeno, pal.muted, 'left')
+
+    // Manómetro digital
+    const mx = MANOMETRO_X
+    const anchoManometro = 96
+    const cajaAncho = anchoManometro - 18
+    ctx.strokeStyle = pal.fg
+    ctx.lineWidth = trazo
+    ctx.strokeRect(mx, 60, anchoManometro, 280)
+    ctx.fillStyle = pal.panel2
+    ctx.fillRect(mx + 1, 61, anchoManometro - 2, 279)
+    texto(ctx, pal, mx + anchoManometro, 50, 'manómetro digital', pequeno, pal.muted, 'right')
+    ctx.fillStyle = pal.scene
+    ctx.fillRect(mx + 9, 66, cajaAncho, 38)
+    ctx.strokeStyle = pal.line
+    ctx.lineWidth = trazo
+    ctx.strokeRect(mx + 9, 66, cajaAncho, 38)
+    // El número se ajusta a la caja: texto() ya escala con --fs, así que aquí
+    // se mide y se reduce, nunca se multiplica dos veces por fs.
+    const numeroLcd = fmt(lectura.p, 1)
+    let cuerpo = 17
+    ctx.font = (cuerpo * fs) + 'px system-ui, sans-serif'
+    const anchoLcd = ctx.measureText(numeroLcd).width
+    if (anchoLcd > cajaAncho - 12) cuerpo = Math.max(10, Math.min(cuerpo, (cajaAncho - 12) / fs))
+    texto(ctx, pal, mx + anchoManometro / 2, 90, numeroLcd, cuerpo / fs, pal.fg, 'center')
+    texto(ctx, pal, mx + anchoManometro / 2, limitar(112 - 6 * (fs - 1), 104, 118), 'kPa', pequeno, pal.muted, 'center')
+
+    // Barra con escala partida: 0-1000 kPa ampliada y 1000-2500 kPa comprimida,
+    // porque con escala lineal de 2500 kPa una jeringa de clase (tope 4 atm)
+    // solo llena el 13 % de la barra y no se ve nada.
+    const barraArriba = 130
+    const barraAbajo = 330
+    const altoZoom = 150
+    const altoTope = 50
+    const zoomHasta = 1000
+    function altoBarraDe(kPa) {
+      const q = limitar(kPa, 0, P_ESCALA)
+      if (q <= zoomHasta) return (q / zoomHasta) * altoZoom
+      return altoZoom + ((q - zoomHasta) / (P_ESCALA - zoomHasta)) * altoTope
+    }
+    ctx.strokeStyle = pal.line
+    ctx.lineWidth = trazo
+    ctx.strokeRect(mx + 10, barraArriba, 18, barraAbajo - barraArriba)
+    // La barra sigue el valor de la ley: el ruido del ±5 % lo lleva solo el número,
+    // así que en la esquina caliente la barra no queda pegada arriba media sesión.
+    const altoBarra = altoBarraDe(e.p)
+    ctx.fillStyle = e.p > P_TOPE ? pal.warn : pal.ok
+    ctx.fillRect(mx + 11, barraAbajo - altoBarra, 16, altoBarra)
+    if (e.p > P_TOPE) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(mx + 11, barraAbajo - altoBarra, 16, altoBarra)
+      ctx.clip()
+      ctx.strokeStyle = pal.scene
+      ctx.lineWidth = 2
+      for (let d = -altoBarra; d < 20; d += 6) {
+        ctx.beginPath()
+        ctx.moveTo(mx + 11 + d, barraAbajo)
+        ctx.lineTo(mx + 11 + d + altoBarra, barraAbajo - altoBarra)
+        ctx.stroke()
+      }
+      ctx.restore()
+    }
+    ctx.strokeStyle = e.p > P_TOPE ? pal.warn : pal.fg
+    ctx.lineWidth = e.p > P_TOPE ? 3 : trazo
+    ctx.strokeRect(mx + 11, barraAbajo - altoBarra, 16, altoBarra)
+    ctx.strokeStyle = pal.fg
+    ctx.lineWidth = trazo
+    for (let kPa = 0; kPa <= P_ESCALA; kPa += 250) {
+      const y = barraAbajo - altoBarraDe(kPa)
+      const largo = (kPa % 500 === 0) ? 8 : 4
+      ctx.beginPath()
+      ctx.moveTo(mx + 28, y)
+      ctx.lineTo(mx + 28 + largo, y)
+      ctx.stroke()
+      const etiquetado = kPa <= zoomHasta || kPa === P_ESCALA
+      if (etiquetado) texto(ctx, pal, mx + 40, y + 4, String(kPa), pequeno, pal.muted, 'left')
+    }
+    // Dos diagonales de rotura en la frontera de las dos escalas
+    const yRoto = barraAbajo - altoZoom
+    ctx.strokeStyle = pal.muted
+    ctx.lineWidth = trazo
+    ctx.beginPath()
+    ctx.moveTo(mx + 8, yRoto + 4)
+    ctx.lineTo(mx + 14, yRoto - 4)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(mx + 25, yRoto + 4)
+    ctx.lineTo(mx + 31, yRoto - 4)
+    ctx.stroke()
+    // En una línea, bajo todo el dibujo: a la derecha, junto a la barra, no
+    // cabían dos líneas anchas cuando la fuente se amplía.
+    texto(ctx, pal, CILINDRO_X, 432, '0-1000 kPa ampliado · 1000-2500 kPa comprimido', pequeno, pal.muted, 'left')
+
+    // Partículas con estela corta: indica la dirección sin convertir cada bolita en una flecha
+    for (const q of particulas) {
+      const v = Math.hypot(q.vx, q.vy)
+      const estela = Math.min(12, 0.05 * v)
+      if (!hc && estela >= 5) {
+        const k = estela / v
+        ctx.strokeStyle = pal.accent
+        ctx.globalAlpha = 0.55
+        ctx.lineWidth = 1.4
+        ctx.beginPath()
+        ctx.moveTo(q.x, q.y)
+        ctx.lineTo(q.x - q.vx * k, q.y - q.vy * k)
+        ctx.stroke()
+        ctx.globalAlpha = 1
+      }
+      ctx.fillStyle = pal.accent
+      ctx.beginPath()
+      ctx.arc(q.x, q.y, RADIO, 0, 2 * Math.PI)
+      ctx.fill()
+    }
+
+    // Rótulos del estado, por encima del pistón y sin entrar en el manómetro
+    const y1 = CILINDRO_Y - 40 - 6 * (fs - 1)
+    const y2 = y1 + pequeno * fs + 4
+    texto(ctx, pal, CILINDRO_X, y1, 'cilindro con pistón', pequeno, pal.muted, 'left')
+    const nombreGas = NOMBRE_GAS[e.M] ?? 'gas'
+    const formas = [
+      fmt(e.n, 2) + ' mol de ' + nombreGas + ' · ' + fmt(e.V, 1) + ' L · ' + fmt(e.T, 0) + ' K',
+      fmt(e.n, 2) + ' mol · ' + fmt(e.V, 1) + ' L · ' + fmt(e.T, 0) + ' K',
+      fmt(e.V, 1) + ' L · ' + fmt(e.T, 0) + ' K'
+    ]
+    const anchoMaximo = MANOMETRO_X - 10 - CILINDRO_X
+    ctx.font = (normal * fs) + 'px system-ui, sans-serif'
+    let linea = formas[formas.length - 1]
+    for (const forma of formas) {
+      if (ctx.measureText(forma).width <= anchoMaximo) {
+        linea = forma
+        break
+      }
+    }
+    texto(ctx, pal, CILINDRO_X, y2, linea, normal, pal.fg, 'left')
+    texto(ctx, pal, CILINDRO_X, 408,
+      'v_rms ' + fmt(e.vrms, 0) + ' m/s · ' + fmt(e.dens, 2) + ' g/L · ' + particulas.length + ' partículas (muestra)',
+      pequeno, pal.muted, 'left')
+    // Si la fuente se amplía, el aviso se encoge para caber a la derecha de
+    // la regla sin invadir la fila de mL ni la línea de v_rms.
+    if (e.p > P_TOPE) {
+      let cuerpoAviso = pequeno
+      ctx.font = (cuerpoAviso * fs) + 'px system-ui, sans-serif'
+      const anchoAviso = ctx.measureText('por encima de 4 atm').width
+      const topeAviso = mx + anchoManometro - 470
+      if (anchoAviso > topeAviso) cuerpoAviso = Math.max(9, (topeAviso / anchoAviso) * cuerpoAviso)
+      texto(ctx, pal, mx + anchoManometro, 358, 'por encima de 4 atm', cuerpoAviso, pal.warn, 'right')
+    }
+
+    // La descripción se reescribe solo cuando cambia: reescribir los dos canvas
+    // sesenta veces por segundo hace que el lector de pantalla se quede atrás.
+    const etiquetaEscena = 'Cilindro con ' + fmt(e.V, 1) + ' litros de ' + (NOMBRE_GAS[e.M] ?? 'gas') +
+      ' (con ' + fmt(e.n, 2) + ' moles a ' + fmt(e.T, 0) + ' kelvin). El manómetro marca ' + fmt(lectura.p, 1) +
+      ' kilopascales, ' + fmt(lectura.p / ATM, 2) + ' atmósferas; la ley da ' + fmt(e.p, 1) +
+      ' kilopascales. Partículas a ' + fmt(e.vrms, 0) + ' metros por segundo.'
+    if (etiquetaEscena !== etiquetaEscenaPrevia) {
+      etiquetaEscenaPrevia = etiquetaEscena
+      el('escena').setAttribute('aria-label', etiquetaEscena)
+    }
+  }
+
+  /* ---------------- gráfica ---------------- */
+  const GRAFICAS = {
+    'p-v': {
+      titulo: 'presión frente al volumen',
+      xMin: 2, xMax: 12, yMin: 0, yMax: 2500, xPaso: 2, yPaso: 500,
+      xUnidad: 'L', yUnidad: 'kPa', xLabel: 'volumen (L)', yLabel: 'presión (kPa)',
+      kelvin: false
+    },
+    'p-t': {
+      titulo: 'presión frente a la temperatura',
+      xMin: -300, xMax: 350, yMin: 0, yMax: 2500, xPaso: 100, yPaso: 500,
+      xUnidad: '°C', yUnidad: 'kPa', xLabel: 'temperatura (°C)', yLabel: 'presión (kPa)',
+      kelvin: true
+    },
+    'v-t': {
+      titulo: 'volumen frente a la temperatura',
+      xMin: -300, xMax: 350, yMin: 0, yMax: 12, xPaso: 100, yPaso: 2,
+      xUnidad: '°C', yUnidad: 'L', xLabel: 'temperatura (°C)', yLabel: 'volumen (L)',
+      kelvin: true
+    },
+    'pv-v': {
+      titulo: 'producto pV frente al volumen',
+      xMin: 2, xMax: 12, yMin: 0, yMax: 5000, xPaso: 2, yPaso: 1000,
+      xUnidad: 'L', yUnidad: 'kPa·L', xLabel: 'volumen (L)', yLabel: 'pV (kPa·L)',
+      kelvin: false
+    }
+  }
+  const GX0 = 58
+  const GX1 = 600
+  const GY0 = 16
+  const GY1 = 206
+
+  function puntoDe(m, tipo) {
+    if (tipo === 'p-v') return { x: m.V, y: m.p }
+    if (tipo === 'p-t') return { x: m.T + CERO_K, y: m.p }
+    if (tipo === 'v-t') return { x: m.T + CERO_K, y: m.V }
+    return { x: m.V, y: m.pV }
+  }
+
+  function curvaTeorica(tipo, e) {
+    const puntos = []
+    const g = GRAFICAS[tipo]
+    const pasos = 60
+    for (let i = 0; i <= pasos; i += 1) {
+      const x = g.xMin + ((g.xMax - g.xMin) * i) / pasos
+      let y
+      if (tipo === 'p-v') y = modelo.presion(e.n, e.T, x)
+      else if (tipo === 'p-t') y = modelo.presion(e.n, e.T, e.V) * (x - CERO_K) / e.T
+      else if (tipo === 'v-t') y = modelo.volumen(e.n, x - CERO_K, e.p)
+      else y = modelo.producto(e.n, e.T)
+      if (!Number.isFinite(y)) continue
+      // Fuera del cuadro no se dibuja: recortar dejaría la recta plana y
+      // haría parecer que la ley falla en el tramo recortado.
+      if (y < g.yMin - 1e-9 || y > g.yMax + 1e-9) continue
+      puntos.push({ x: x, y: y })
+    }
+    return puntos
+  }
+
+  function dibujarGrafica() {
+    const ctx = lienzo('grafica', GRAFICA_ANCHO, GRAFICA_ALTO)
+    if (!ctx) return
+    const pal = paleta()
+    const e = estadoModelo()
+    const tipo = el('tipo-grafica').value in GRAFICAS ? el('tipo-grafica').value : 'p-v'
+    const g = GRAFICAS[tipo]
+    const pequeno = 13
+    const fs = factorFuente()
+
+    ctx.clearRect(0, 0, GRAFICA_ANCHO, GRAFICA_ALTO)
+    ctx.fillStyle = pal.scene
+    ctx.fillRect(0, 0, GRAFICA_ANCHO, GRAFICA_ALTO)
+
+    const pxX = (v) => GX0 + ((v - g.xMin) / (g.xMax - g.xMin)) * (GX1 - GX0)
+    const pxY = (v) => GY1 - ((v - g.yMin) / (g.yMax - g.yMin)) * (GY1 - GY0)
+
+    // Rejilla y etiquetas
+    ctx.strokeStyle = pal.grid
+    ctx.lineWidth = 1
+    // Con 0,45 la rejilla quedaba en 1,5:1: invisible para baja visión.
+    ctx.globalAlpha = root.getAttribute('data-contraste') === 'alto' ? 1 : 0.9
+    for (let v = g.yMin; v <= g.yMax + 1e-9; v += g.yPaso) {
+      const y = pxY(v)
+      ctx.beginPath()
+      ctx.moveTo(GX0, y)
+      ctx.lineTo(GX1, y)
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = pal.fg
+    ctx.lineWidth = root.getAttribute('data-contraste') === 'alto' ? 3 : 1.6
+    ctx.beginPath()
+    ctx.moveTo(GX0, GY0)
+    ctx.lineTo(GX0, GY1)
+    ctx.lineTo(GX1, GY1)
+    ctx.stroke()
+
+    for (let v = g.yMin; v <= g.yMax + 1e-9; v += g.yPaso) {
+      texto(ctx, pal, GX0 - 6, pxY(v) + 4, String(Math.round(v)), pequeno, pal.muted, 'right')
+    }
+    for (let v = g.xMin; v <= g.xMax + 1e-9; v += g.xPaso) {
+      const x = pxX(v)
+      ctx.strokeStyle = pal.fg
+      ctx.lineWidth = 1.2
+      ctx.beginPath()
+      ctx.moveTo(x, GY1)
+      ctx.lineTo(x, GY1 + 5)
+      ctx.stroke()
+      texto(ctx, pal, x, GY1 + 18, String(Math.round(v)), pequeno, pal.muted, 'center')
+    }
+    texto(ctx, pal, GX1, GY1 + 34, g.xLabel, pequeno, pal.muted, 'right')
+    texto(ctx, pal, GX0, GY0 - 4, g.yLabel, pequeno, pal.muted, 'left')
+
+    // Leyenda dentro del cuadro: sin ella la discontinua y la continua no se
+    // distinguen desde el fondo de la clase.
+    const lx = GX0 + 12
+    const ly = GY0 + 16
+    ctx.strokeStyle = pal.accent2
+    ctx.lineWidth = 2.2
+    ctx.setLineDash([10, 5])
+    ctx.beginPath()
+    ctx.moveTo(lx, ly - 4)
+    ctx.lineTo(lx + 22, ly - 4)
+    ctx.stroke()
+    ctx.setLineDash([])
+    texto(ctx, pal, lx + 28, ly, 'la ley', pequeno, pal.accent2, 'left')
+    ctx.strokeStyle = pal.accent
+    ctx.lineWidth = 2.6
+    ctx.beginPath()
+    ctx.moveTo(lx + 92, ly - 4)
+    ctx.lineTo(lx + 114, ly - 4)
+    ctx.stroke()
+    texto(ctx, pal, lx + 120, ly, 'lo medido', pequeno, pal.accent, 'left')
+
+    // Marca del 0 K en las gráficas con temperatura
+    if (g.kelvin) {
+      const x0 = pxX(CERO_K)
+      ctx.strokeStyle = pal.warn
+      ctx.lineWidth = 1.6
+      ctx.setLineDash([7, 5])
+      ctx.beginPath()
+      ctx.moveTo(x0, GY0)
+      ctx.lineTo(x0, GY1)
+      ctx.stroke()
+      ctx.setLineDash([])
+      texto(ctx, pal, x0 + 6, GY1 - 6, '0 K = −273,15 °C', pequeno, pal.warn, 'left')
+    }
+
+    // Curva teórica de la ley
+    const curva = curvaTeorica(tipo, e)
+    ctx.strokeStyle = pal.accent2
+    ctx.lineWidth = 2.2
+    ctx.setLineDash([10, 5])
+    ctx.beginPath()
+    curva.forEach((pt, i) => {
+      const x = pxX(pt.x)
+      const y = pxY(pt.y)
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
+    })
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    // Trayectoria de las tomas, recortada en el cuadro (sin clavar los puntos
+    // en el borde: eso dibujaba rectas horizontales falsas)
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(GX0, GY0, GX1 - GX0, GY1 - GY0)
+    ctx.clip()
+    ctx.strokeStyle = pal.accent
+    ctx.lineWidth = 2.6
+    ctx.beginPath()
+    let visibles = 0
+    let primero = true
+    for (const m of muestras) {
+      const pt = puntoDe(m, tipo)
+      if (pt.x < g.xMin - 1e-9 || pt.x > g.xMax + 1e-9) {
+        primero = true
+        continue
+      }
+      const x = pxX(pt.x)
+      const y = pxY(pt.y)
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+      if (primero) { ctx.moveTo(x, y); primero = false }
+      else ctx.lineTo(x, y)
+      visibles += 1
+    }
+    ctx.stroke()
+    ctx.restore()
+
+    // Punto del estado actual, con su valor escrito al lado
+    const actual = puntoDe({ V: e.V, T: e.T, p: e.p, pV: e.pV }, tipo)
+    const ax = pxX(limitar(actual.x, g.xMin, g.xMax))
+    const ay = pxY(limitar(actual.y, g.yMin, g.yMax))
+    ctx.fillStyle = pal.accent2
+    ctx.beginPath()
+    ctx.arc(ax, ay, 6, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.strokeStyle = pal.scene
+    ctx.lineWidth = 2
+    ctx.stroke()
+    const etiquetaPunto = fmt(actual.y, 1) + ' ' + g.yUnidad
+    if (ax > GX1 - 120) texto(ctx, pal, ax - 10, ay - 10, etiquetaPunto, pequeno, pal.accent2, 'right')
+    else texto(ctx, pal, ax + 10, ay - 10, etiquetaPunto, pequeno, pal.accent2, 'left')
+
+    texto(ctx, pal, GX1, GY0 - 4, 'modo ' + NOMBRE_MODO[e.modo], pequeno, pal.muted, 'right')
+
+    const etiquetaGrafica = 'Gráfica de ' + g.titulo + ', con el eje horizontal en ' + g.xUnidad + ' de ' + fmt(g.xMin, 0) +
+      ' a ' + fmt(g.xMax, 0) + ' y el vertical en ' + g.yUnidad + ' de ' + fmt(g.yMin, 0) + ' a ' + fmt(g.yMax, 0) +
+      ', con ' + visibles + ' puntos de la trayectoria. Punto actual: ' + fmt(actual.x, 2) + ' ' + g.xUnidad +
+      ' y ' + fmt(actual.y, 2) + ' ' + g.yUnidad + '.'
+    if (etiquetaGrafica !== etiquetaGraficaPrevia) {
+      etiquetaGraficaPrevia = etiquetaGrafica
+      el('grafica').setAttribute('aria-label', etiquetaGrafica)
+    }
+  }
+
+  /* ---------------- lecturas ---------------- */
+  const lecturas = {
+    pLeida: el('lect-p-leida'),
+    pAtm: el('lect-p-atm'),
+    pLey: el('lect-p-ley'),
+    v: el('lect-v'),
+    tK: el('lect-t-k'),
+    tC: el('lect-t-c'),
+    pv: el('lect-pv'),
+    n: el('lect-n'),
+    masa: el('lect-masa'),
+    dens: el('lect-dens'),
+    vrms: el('lect-vrms'),
+    ec: el('lect-ec'),
+    pT: el('lect-p-t'),
+    vT: el('lect-v-t'),
+    choques: el('lect-choques'),
+    tiempo: el('lect-tiempo')
+  }
+
+  function escribirLecturas() {
+    const e = estadoModelo()
+    // Las lecturas del instrumento llevan menos decimales que los valores de
+    // la ley: un manómetro con ±5 % no tiene sentido escribirlo a 0,01 kPa.
+    lecturas.pLeida.textContent = fmt(lectura.p, 1)
+    lecturas.pAtm.textContent = fmt(lectura.p / ATM, 2)
+    lecturas.pLey.textContent = fmt(e.p, 2)
+    lecturas.v.textContent = fmt(e.V, 2)
+    lecturas.tK.textContent = fmt(lectura.T, 1)
+    lecturas.tC.textContent = fmt(lectura.T + CERO_K, 1)
+    lecturas.pv.textContent = fmt(e.pV, 2)
+    lecturas.n.textContent = fmt(e.n, 2)
+    lecturas.masa.textContent = fmt(e.masa, 2)
+    lecturas.dens.textContent = fmt(e.dens, 2)
+    lecturas.vrms.textContent = fmt(e.vrms, 1)
+    lecturas.ec.textContent = fmt(e.ec, 2)
+    lecturas.pT.textContent = fmt(e.p / e.T, 3)
+    lecturas.vT.textContent = fmt(e.V / e.T, 4)
+    lecturas.tiempo.textContent = fmt(t, 1)
+    lecturas.choques.textContent = String(choquesPiston.tasa)
+  }
+
+  /* ---------------- avisos ---------------- */
+  const regionAviso = el('aviso')
+  function textoAviso() {
+    const e = estadoModelo()
+    const avisos = []
+    if (st.modo === 2 && ventana.degenerada) {
+      avisos.push('Sin recorrido: el pistón está clavado en un tope con este estado inicial, así que la ley de Charles no se puede recorrer. Cambia el volumen o la temperatura antes de entrar en el modo.')
+    } else if (e.pEnTope) {
+      avisos.push('Pistón clavado en el tope del cilindro: la ley se sigue cumpliendo, pero el volumen ya no puede seguir a la temperatura y la recta de la gráfica se corta. Cambia el volumen inicial para ampliar el recorrido.')
+    }
+    if (e.p > P_TOPE) {
+      avisos.push('Aviso de seguridad: ' + fmt(e.p / ATM, 1) + ' atm es más de lo que se puede comprimir en clase con una jeringa de plástico (4-5 atm); ese punto exigiría un cilindro metálico con válvula.')
+    }
+    return avisos.join(' ')
+  }
+  function sincronizarAvisos() {
+    const texto = textoAviso()
+    if (texto) {
+      regionAviso.textContent = texto
+      regionAviso.removeAttribute('hidden')
+    } else {
+      regionAviso.textContent = ''
+      regionAviso.setAttribute('hidden', '')
+    }
+  }
+
+  /* ---------------- estado anunciado ---------------- */
+  const regionEstado = el('estado')
+  function anunciar(texto) {
+    regionEstado.textContent = texto
+    relojAnuncios = 0
+  }
+  // Frase corta para el bucle: un lector de pantalla no es capaz de seguir una
+  // frase de 50 palabras repetida cada segundo y medio.
+  function estadoCorto(e) {
+    return 'p ' + fmt(e.p, 1) + ' kPa · V ' + fmt(e.V, 1) + ' L · T ' + fmt(e.T, 0) +
+      ' K · ' + fmt(t, 1) + ' s'
+  }
+  function actualizarEstadoForzado() {
+    const e = estadoModelo()
+    const aviso = textoAviso()
+    anunciar(
+      'Modo ' + NOMBRE_MODO[e.modo] + ' con ' + (NOMBRE_GAS[e.M] ?? 'gas') + ': ' + fmt(e.n, 2) +
+      ' mol a ' + fmt(e.T, 0) + ' K en ' + fmt(e.V, 2) + ' L. Presión de la ley ' + fmt(e.p, 1) +
+      ' kPa (' + fmt(e.p / ATM, 2) + ' atm); el manómetro marca ' + fmt(lectura.p, 1) + ' kPa. ' +
+      (aviso ? aviso + ' ' : '') + 'Tiempo ' + fmt(t, 1) + ' s.'
+    )
+  }
+
+  /* ---------------- tabla de datos ---------------- */
+  const tablaCuerpo = el('tabla-cuerpo')
+  function pintarTabla() {
+    while (tablaCuerpo.firstChild) tablaCuerpo.removeChild(tablaCuerpo.firstChild)
+    const inicio = Math.max(0, muestras.length - 40)
+    for (let i = inicio; i < muestras.length; i += 1) {
+      const m = muestras[i]
+      const fila = document.createElement('tr')
+      const celdas = [fmt(m.t, 2), m.modo, fmt(m.V, 2), fmt(m.T, 1), fmt(m.T + CERO_K, 1), fmt(m.n, 2),
+        fmt(m.M, 2), fmt(m.pLeida, 2), fmt(m.p, 2), fmt(m.pV, 2)]
+      for (const valor of celdas) {
+        const celda = document.createElement('td')
+        celda.textContent = valor
+        fila.appendChild(celda)
+      }
+      tablaCuerpo.appendChild(fila)
+    }
+  }
+
+  function copiarDatos() {
+    const lineas = ['t (s)\tmodo\tV (L)\tT (K)\tT (°C)\tn (mol)\tgas (g/mol)\tp leída (kPa)\tp ley (kPa)\tpV (kPa·L)']
+    for (const m of muestras) {
+      lineas.push([m.t.toFixed(2), m.modo, m.V.toFixed(2), m.T.toFixed(1), (m.T + CERO_K).toFixed(1),
+        m.n.toFixed(2), m.M.toFixed(2), m.pLeida.toFixed(2), m.p.toFixed(2), m.pV.toFixed(2)].join('\t'))
+    }
+    const texto = lineas.join('\n')
+    const aviso = el('aviso-copiar')
+    const exito = () => { aviso.textContent = 'Copiados ' + muestras.length + ' valores: pégalos en una hoja de cálculo.' }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(exito).catch(() => {
+        aviso.textContent = 'El navegador no permite copiar automáticamente: usa «Ver datos» y selecciona la tabla.'
+      })
+    } else {
+      aviso.textContent = 'Este navegador no permite copiar automáticamente: usa «Ver datos» y selecciona la tabla.'
+    }
+  }
+
+  const CAMPOS_LECTURA = [
+    ['Presión leída (kPa)', 'lect-p-leida'],
+    ['Presión leída (atm)', 'lect-p-atm'],
+    ['Presión de la ley (kPa)', 'lect-p-ley'],
+    ['Volumen (L)', 'lect-v'],
+    ['Temperatura (K)', 'lect-t-k'],
+    ['Temperatura (°C)', 'lect-t-c'],
+    ['Producto pV (kPa·L)', 'lect-pv'],
+    ['Cantidad (mol)', 'lect-n'],
+    ['Masa del gas (g)', 'lect-masa'],
+    ['Densidad (g/L)', 'lect-dens'],
+    ['Velocidad rms (m/s)', 'lect-vrms'],
+    ['Energía cinética (J)', 'lect-ec'],
+    ['Cociente p/T (kPa/K)', 'lect-p-t'],
+    ['Cociente V/T (L/K)', 'lect-v-t'],
+    ['Choques contra el pistón (1/s)', 'lect-choques'],
+    ['Tiempo (s)', 'lect-tiempo']
+  ]
+  function copiarLectura() {
+    const texto = CAMPOS_LECTURA.map((par) => par[0] + ': ' + el(par[1]).textContent).join(' · ')
+    const aviso = el('aviso-copiar')
+    const exito = () => { aviso.textContent = 'Lectura copiada: ' + texto + '.' }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(exito).catch(() => {
+        aviso.textContent = 'El navegador no permite copiar automáticamente: la lectura completa también está en «Lecturas».'
+      })
+    } else {
+      aviso.textContent = 'Este navegador no permite copiar automáticamente: la lectura completa también está en «Lecturas».'
+    }
+  }
+
+  /* ---------------- controles ---------------- */
+  const btnPausar = el('btn-pausar')
+  function marcarPausa(pausado) {
+    running = !pausado
+    btnPausar.setAttribute('aria-pressed', pausado ? 'true' : 'false')
+    btnPausar.textContent = pausado ? 'Iniciar' : 'Pausar'
+  }
+  function cambiarPausa() {
+    marcarPausa(running)
+    actualizarEstadoForzado()
+  }
+
+  function leerVariables() {
+    st.modo = limitar(Math.round(numero(el('modo').value, 1)), 1, 4)
+    st.V = limitar(numero(el('volumen').value, INICIAL.V), V_MIN, V_MAX)
+    st.T = limitar(numero(el('temperatura').value, INICIAL.T), T_MIN, T_MAX)
+    st.n = limitar(numero(el('moles').value, INICIAL.n), 0.1, 1)
+    st.M = numero(el('masa-molar').value, INICIAL.M)
+    st.velocidad = limitar(numero(el('velocidad').value, 1), 0.25, 2)
+  }
+
+  // Devuelven el valor encajado en la rejilla del deslizador, para que la
+  // empuñadura no quede entre dos marcas al sincronizar con el modelo.
+  const enCua = (v) => limitar(Math.round((v - V_MIN) / 0.2) * 0.2 + V_MIN, V_MIN, V_MAX)
+  const enCuaT = (v) => limitar(Math.round((v - T_MIN) / T_PASO) * T_PASO + T_MIN, T_MIN, T_MAX)
+
+  /* ---------------- casillas clave por modo ---------------- */
+  const OBSERVABLES_CAJA = ['presion-leida', 'presion-leida-atm', 'presion-ley', 'volumen', 'temperatura-k',
+    'temperatura-c', 'producto-pv', 'cantidad', 'masa-gas', 'densidad', 'velocidad-rms', 'energia-cinetica',
+    'cociente-p-t', 'cociente-v-t', 'choques-piston', 'tiempo']
+  const CAJAS_POR_OBSERVABLE = new Map(OBSERVABLES_CAJA.map((o) => [o, el('caja-' + o)]))
+  const CLAVES_POR_MODO = {
+    1: ['presion-leida', 'presion-ley', 'producto-pv'],
+    2: ['presion-leida', 'volumen', 'cociente-v-t'],
+    3: ['presion-leida', 'presion-ley', 'cociente-p-t'],
+    4: ['presion-ley', 'volumen', 'temperatura-k']
+  }
+  function marcarCasillasClave() {
+    for (const obs of OBSERVABLES_CAJA) {
+      const caja = CAJAS_POR_OBSERVABLE.get(obs)
+      if (caja === null) continue
+      const clave = (CLAVES_POR_MODO[st.modo] ?? CLAVES_POR_MODO[4]).includes(obs)
+      if (clave) caja.setAttribute('class', 'clave')
+      else caja.removeAttribute('class')
+    }
+  }
+
+  function sincronizarControles() {
+    const e = estadoModelo()
+    el('volumen-valor').textContent = fmt(e.V, 1)
+    el('temperatura-valor').textContent = fmt(e.T, 0)
+    el('moles-valor').textContent = fmt(e.n, 2)
+    el('masa-molar-valor').textContent = fmt(st.M, 2)
+    el('velocidad-valor').textContent = fmt(st.velocidad, 2)
+
+    el('volumen').setAttribute('aria-valuetext', fmt(e.V, 1) + ' litros')
+    el('temperatura').setAttribute('aria-valuetext', fmt(e.T, 0) + ' kelvin')
+    el('moles').setAttribute('aria-valuetext', fmt(e.n, 2) + ' moles')
+    el('velocidad').setAttribute('aria-valuetext', fmt(st.velocidad, 2) + ' veces')
+
+    const volumenConstante = st.modo === 2 || st.modo === 3
+    const temperaturaConstante = st.modo === 1
+    const molesConstantes = st.modo !== 4
+
+    const sliderV = el('volumen')
+    const sliderT = el('temperatura')
+    const sliderN = el('moles')
+    // aria-disabled (no «disabled»): el deslizador sigue en el orden de tabulación y
+    // el lector lo anuncia; el modelo lee la magnitud fija, no el deslizador.
+    const marcar = (slider, bloqueado) => {
+      if (bloqueado) slider.setAttribute('aria-disabled', 'true')
+      else slider.removeAttribute('aria-disabled')
+    }
+    marcar(sliderV, volumenConstante)
+    marcar(sliderT, temperaturaConstante)
+    marcar(sliderN, molesConstantes)
+    // Con el volumen congelado la empuñadura debe quedar donde está el pistón de
+    // verdad; si no, la casilla dice 8,0 L y el deslizador sigue marcando 4,0 L.
+    if (volumenConstante) sliderV.value = String(enCua(e.V))
+
+    const controlV = el('control-volumen')
+    const controlT = el('control-temperatura')
+    const controlN = el('control-moles')
+    if (volumenConstante) controlV.setAttribute('class', 'control bloqueado')
+    else controlV.setAttribute('class', 'control')
+    if (temperaturaConstante) controlT.setAttribute('class', 'control bloqueado')
+    else controlT.setAttribute('class', 'control')
+    if (molesConstantes) controlN.setAttribute('class', 'control bloqueado')
+    else controlN.setAttribute('class', 'control')
+
+    el('nota-volumen').textContent = st.modo === 2
+      ? '· lo fija la ley (V = V₀·T/T₀): la barra marca dónde está el pistón y no la puedes mover tú'
+      : (st.modo === 3 ? '· constante en este modo' : '')
+    el('nota-temperatura').textContent = temperaturaConstante ? '· constante en este modo' : ''
+    el('nota-moles').textContent = molesConstantes ? '· constante en este modo' : ''
+
+    // Qué producto o cociente queda constante en cada modo, dicho en la propia
+    // casilla: sin esto el alumno cree que p/T y V/T son constantes siempre.
+    const notasCocientes = {
+      1: { pv: '· constante en este modo', pt: '· cambia con V', vt: '· cambia con V' },
+      2: { pv: '· cambia con T', pt: '· cambia con T', vt: '· constante en este modo' },
+      3: { pv: '· cambia con T', pt: '· constante en este modo', vt: '· cambia con T' },
+      4: { pv: '· constante si no cambias T ni n', pt: '· constante si no cambias V ni n', vt: '· constante si no cambias p ni n' }
+    }
+    const nc = notasCocientes[st.modo] ?? notasCocientes[4]
+    el('nota-pv').textContent = nc.pv
+    el('nota-p-t').textContent = nc.pt
+    el('nota-v-t').textContent = nc.vt
+
+    const notas = {
+      1: 'Modo Boyle: la temperatura y la cantidad de gas quedan congeladas; tú mueves el volumen y mides la presión.',
+      2: 'Modo Charles: la presión y la cantidad de gas quedan congeladas; tú mueves la temperatura y el pistón se coloca solo. El deslizador de temperatura está recortado a ' +
+        fmt(ventana.min, 0) + ' K y ' + fmt(ventana.max, 0) + ' K, que es lo que cabe entre los topes de 2,0 L y 12,0 L.',
+      3: 'Modo Gay-Lussac: el volumen y la cantidad de gas quedan congeladas; tú mueves la temperatura y mides la presión.',
+      4: 'Modo libre: puedes mover la temperatura, el volumen y la cantidad de gas a la vez. Para comprobar una ley sola, sujeta antes las magnitudes que no deban cambiar.'
+    }
+    el('nota-modo').textContent = notas[st.modo] ?? notas[4]
+    marcarCasillasClave()
+  }
+
+  /* ---------------- cambios de estado ---------------- */
+  function entrarModo(valor) {
+    const nuevo = limitar(Math.round(numero(valor, st.modo)), 1, 4)
+    const anteriorV = estadoModelo().V
+    if (nuevo === st.modo) { sincronizarControles(); return }
+    const base = estadoModelo()
+    st.modo = nuevo
+    if (nuevo === 1) {
+      fijo.T = base.T
+      fijo.n = base.n
+      // Sin esto el pistón salta al volver de Charles: el modelo estaba en 8,0 L
+      // y el deslizador, que nadie ha movido, seguía marcando 4,0 L.
+      st.V = enCua(base.V)
+      el('volumen').value = String(st.V)
+    } else if (nuevo === 2) {
+      fijo.p = base.p
+      fijo.n = base.n
+      st.T = base.T
+    } else if (nuevo === 3) {
+      fijo.V = base.V
+      fijo.n = base.n
+      st.V = base.V
+      el('volumen').value = String(enCua(base.V))
+    } else {
+      st.V = enCua(base.V)
+      st.T = enCuaT(base.T)
+      el('volumen').value = String(st.V)
+      el('temperatura').value = String(st.T)
+    }
+    const nueva = nuevo === 2 ? calcularVentana(base.T, base.V) : { min: T_MIN, max: T_MAX, degenerada: false }
+    ventana.min = nueva.min
+    ventana.max = nueva.max
+    ventana.degenerada = nueva.degenerada
+    aplicarVentana()
+    const nuevoV = estadoModelo().V
+    if (Math.abs(nuevoV - anteriorV) > 1e-9) reescalarPosiciones(anteriorV, nuevoV)
+    // La velocidad de las bolitas es la física (v_rms escalada); la velocidad
+    // de animación solo multiplica el dt, así que ×2 no dobla el salto por cuadro.
+    ajustarVelocidades(estadoModelo().vrms * FACTOR_PX)
+    nuevaLectura()
+    // Cada ley se dibuja en su propia gráfica: la trayectoria del modo anterior
+    // no debe quedar encima de la curva nueva, y la tabla empieza limpia.
+    muestras = []
+    if (datosVisible) pintarTabla()
+    sincronizarControles()
+    sincronizarAvisos()
+    escribirLecturas()
+    dibujarEscena()
+    dibujarGrafica()
+    actualizarEstadoForzado()
+    regionEstado.textContent = 'Tablas y trayectoria vacías: cada modo se mide en su propia gráfica. ' +
+      regionEstado.textContent
+  }
+
+  function alMover() {
+    const anteriorV = estadoModelo().V
+    leerVariables()
+    if (st.modo === 2) st.T = limitar(st.T, ventana.min, ventana.max)
+    const e = estadoModelo()
+    if (Math.abs(e.V - anteriorV) > 1e-9) reescalarPosiciones(anteriorV, e.V)
+    ajustarVelocidades(e.vrms * FACTOR_PX)
+    nuevaLectura()
+    sincronizarControles()
+    sincronizarAvisos()
+    escribirLecturas()
+    dibujarEscena()
+    dibujarGrafica()
+    actualizarEstadoForzado()
+  }
+
+  /* ---------------- datos ---------------- */
+  const regionDatos = el('datos')
+  const btnDatos = el('btn-datos')
+  let datosVisible = false
+  function cambiarDatos() {
+    datosVisible = !datosVisible
+    if (datosVisible) {
+      regionDatos.removeAttribute('hidden')
+      pintarTabla()
+    } else {
+      regionDatos.setAttribute('hidden', '')
+    }
+    btnDatos.setAttribute('aria-pressed', datosVisible ? 'true' : 'false')
+    btnDatos.setAttribute('aria-expanded', datosVisible ? 'true' : 'false')
+    btnDatos.textContent = datosVisible ? 'Ocultar datos' : 'Ver datos'
+  }
+
+  const puntosLista = el('puntos-lista')
+  function vaciarPuntos() {
+    while (puntosLista.firstChild) puntosLista.removeChild(puntosLista.firstChild)
+  }
+  function tomarPunto() {
+    const e = estadoModelo()
+    const fila = document.createElement('li')
+    fila.textContent = [NOMBRE_MODO[e.modo] ?? 'libre', 'V ' + fmt(e.V, 2) + ' L',
+      'T ' + fmt(lectura.T, 1) + ' K', 'n ' + fmt(e.n, 2) + ' mol',
+      (NOMBRE_GAS[e.M] ?? 'gas') + ' (' + fmt(e.M, 2) + ' g/mol)',
+      'p leída ' + fmt(lectura.p, 1) + ' kPa', 'p ley ' + fmt(e.p, 2) + ' kPa',
+      'pV ' + fmt(e.pV, 2) + ' kPa·L'].join(' · ')
+    puntosLista.appendChild(fila)
+    if (!datosVisible) cambiarDatos()
+    anunciar('Punto guardado: ' + fila.textContent)
+  }
+
+  function registrarMuestra() {
+    const e = estadoModelo()
+    muestras.push({
+      t: t, modo: NOMBRE_MODO[e.modo] ?? 'libre', V: e.V, T: e.T, n: e.n, M: st.M,
+      p: e.p, pLeida: lectura.p, pV: e.pV
+    })
+    if (muestras.length > 900) muestras.shift()
+    if (datosVisible) pintarTabla()
+  }
+
+  /* ---------------- comprobación de los retos ---------------- */
+  function comprobarReto(n) {
+    const e = estadoModelo()
+    const nota = el('aviso-reto-' + n)
+    if (nota === null) return
+    const f = (texto) => { nota.textContent = texto }
+    const filasDe = (modo) => muestras.filter((m) => m.modo === modo)
+    if (n === 1) {
+      const charles = filasDe('Charles')
+      const temps = new Set(charles.map((m) => Math.round(m.T)))
+      if (st.modo !== 2) {
+        f('Primero pon la simulación en modo Charles: el reto mide V/T a presión fija.')
+      } else if (temps.size < 3) {
+        f('Falta recorrido: en modo Charles toma al menos tres lecturas a temperaturas distintas (mueve la temperatura y deja que la tabla se llene).')
+      } else {
+        f('La tabla lleva ' + charles.length + ' filas en modo Charles con ' + temps.size + ' temperaturas distintas. Ajusta la recta V = a·T y extrapólala hasta V = 0: corta en 0 K, es decir −273,15 °C; compáralo con tu predicción.')
+      }
+    } else if (n === 2) {
+      if (st.modo !== 4) {
+        f('Primero pon la simulación en modo libre: este reto lo montas a mano.')
+      } else if (Math.abs(e.V - 6) > 0.05 || Math.abs(e.T - 450) > 1 || Math.abs(e.n - 0.5) > 0.01) {
+        f('El estado aún no está montado: en modo libre deja 0,50 mol y lleva el volumen a 6,0 L (ahora ' + fmt(e.V, 1) + ' L) y la temperatura a 450 K (ahora ' + fmt(e.T, 0) + ' K). Antes de mover nada, escribe la predicción y pulsa «Comprobar predicción».')
+      } else {
+        f('Hecho: al subir la temperatura un 50 % y el volumen un 50 %, los dos efectos se cancelan y la presión de la ley se queda en 311,78 kPa, igual que al empezar. Compruébalo contra tu predicción.')
+      }
+    } else if (n === 3) {
+      if (st.modo === 3) {
+        if (Math.abs(e.T - 450) > 1 || Math.abs(e.V - 4) > 0.05) {
+          f('Monta el estado inicial con «Reiniciar» (0,50 mol, 4,0 L, 300 K), pon el modo Gay-Lussac y sube a 450 K.')
+        } else {
+          f('Gay-Lussac: con el pistón clavado en 4,00 L, a 450 K la presión llega a 467,66 kPa, un 50 % más. Repite ahora en modo Charles: la presión se quedará en 311,78 kPa y el pistón pasará a 6,00 L.')
+        }
+      } else if (st.modo === 2) {
+        if (Math.abs(e.T - 450) > 1) {
+          f('En modo Charles sube la temperatura hasta 450 K. Si no partías del estado inicial (0,50 mol, 4,0 L, 300 K), pulsa «Reiniciar» antes de cambiar de modo.')
+        } else if (Math.abs(e.V - 6) > 0.05) {
+          f('En modo Charles el pistón llega a 6,00 L solo si entraste desde el estado inicial (presión fija 311,78 kPa): ahora marca ' + fmt(e.V, 2) + ' L. Pulsa «Reiniciar» y vuelve a entrar en el modo.')
+        } else {
+          f('Charles: a 450 K el pistón se ha ido a 6,00 L y la presión se mantiene en 311,78 kPa: el 50 % extra de calor se fue en volumen, no en presión. Repite ahora en modo Gay-Lussac y comprueba 467,66 kPa.')
+        }
+      } else {
+        f('Este reto se hace en dos montajes desde el estado inicial: primero modo Gay-Lussac (pistón bloqueado) y luego modo Charles (pistón libre), calentando de 300 K a 450 K en cada uno.')
+      }
+    } else if (n === 4) {
+      const enCondiciones = (m) => Math.abs(m.n - 0.5) <= 0.01 && Math.abs(m.T - 300) <= 1 && Math.abs(m.V - 4) <= 0.05
+      const filasGas = (M) => muestras.filter((m) => Math.abs(m.M - M) < 0.1 && enCondiciones(m))
+      const filasHelio = filasGas(4)
+      const filasArgon = filasGas(39.95)
+      if (filasHelio.length < 5 || filasArgon.length < 5) {
+        f('Aún faltan datos: la tabla necesita al menos cinco filas de «p leída» con helio (ahora ' + filasHelio.length + ') y cinco con argón (ahora ' + filasArgon.length + '), a 0,50 mol, 300 K y 4,0 L. Con la simulación pausada, pulsa «Avanzar 0,05 s» cinco veces con un gas y repite con el otro.')
+      } else {
+        const media = (filas) => filas.reduce((s, m) => s + m.pLeida, 0) / filas.length
+        const mHe = media(filasHelio)
+        const mAr = media(filasArgon)
+        const dif = Math.abs(mHe - mAr) / ((mHe + mAr) / 2) * 100
+        if (dif <= 4) {
+          f('Cuadra: la media de helio es ' + fmt(mHe, 1) + ' kPa y la de argón ' + fmt(mAr, 1) + ' kPa; la diferencia es ' + fmt(dif, 1) + ' %, por debajo del 4 %. La presión de la ley es 311,78 kPa en los dos: la masa molar no la toca.')
+        } else {
+          f('La media de helio es ' + fmt(mHe, 1) + ' kPa y la de argón ' + fmt(mAr, 1) + ' kPa: la diferencia da ' + fmt(dif, 1) + ' %, que pasa del 4 %. Con el error del ±5 % eso solo sale si no has promediado bien o si alguna fila no está a 0,50 mol, 300 K y 4,0 L.')
+        }
+      }
+    }
+  }
+
+  /* ---------------- controles ---------------- */
+  el('modo').addEventListener('input', () => { entrarModo(el('modo').value) })
+  el('modo').addEventListener('change', () => { entrarModo(el('modo').value) })
+  for (const id of ['volumen', 'temperatura', 'moles', 'velocidad']) {
+    el(id).addEventListener('input', alMover)
+    el(id).addEventListener('change', alMover)
+  }
+  el('masa-molar').addEventListener('change', alMover)
+  el('masa-molar').addEventListener('input', alMover)
+  el('tipo-grafica').addEventListener('change', () => {
+    dibujarGrafica()
+    anunciar('Gráfica cambiada a ' + GRAFICAS[el('tipo-grafica').value].titulo + '.')
+  })
+  btnPausar.addEventListener('click', cambiarPausa)
+  el('btn-reiniciar').addEventListener('click', iniciar)
+  el('btn-paso').addEventListener('click', () => {
+    marcarPausa(true)
+    t += DT_MAXIMO
+    avanzarParticulas(DT_MAXIMO * st.velocidad)
+    nuevaLectura()
+    registrarMuestra()
+    escribirLecturas()
+    sincronizarAvisos()
+    dibujarEscena()
+    dibujarGrafica()
+    actualizarEstadoForzado()
+  })
+  btnDatos.addEventListener('click', cambiarDatos)
+  el('btn-copiar').addEventListener('click', copiarDatos)
+  el('btn-punto').addEventListener('click', tomarPunto)
+  el('btn-copiar-lectura').addEventListener('click', copiarLectura)
+  for (const n of [1, 2, 3, 4]) {
+    el('btn-reto-' + n).addEventListener('click', () => comprobarReto(n))
+  }
+  el('btn-vaciar').addEventListener('click', () => {
+    muestras = []
+    pintarTabla()
+    dibujarGrafica()
+    anunciar('Tabla y trayectoria vacías: la gráfica vuelve a mostrar solo la curva de la ley.')
+  })
+  // La predicción se compara con la presión de la ley y con la banda de lo que el
+  // manómetro puede marcar: si no, el ±5 % del aparato parece un fallo del alumno.
+  el('btn-comprobar').addEventListener('click', () => {
+    const nota = el('aviso-prediccion')
+    const bruto = el('prediccion').value.trim()
+    const valor = numero(bruto, NaN)
+    const e = estadoModelo()
+    // Number('') vale 0, así que el campo vacío hay que detectarlo aparte.
+    if (bruto === '' || !Number.isFinite(valor)) {
+      nota.textContent = 'Escribe la presión que predices en kilopascales con un número normal ' +
+        '(por ejemplo 312) y vuelve a comprobar.'
+      return
+    }
+    const banda = e.p * RUIDO_P
+    const dentro = Math.abs(valor - e.p) <= banda
+    nota.textContent = 'Tu predicción: ' + fmt(valor, 2) + ' kPa. La ley da ' + fmt(e.p, 2) +
+      ' kPa y, por su error del ±5 %, el manómetro puede marcar entre ' + fmt(e.p - banda, 1) +
+      ' y ' + fmt(e.p + banda, 1) + ' kPa: ' + (dentro
+        ? 'tu número cae dentro de lo que el aparato puede marcar.'
+        : 'tu número cae fuera de lo que el aparato puede marcar; revisa el despeje p = n·R·T / V.')
+  })
+
+  /* ---------------- accesibilidad ---------------- */
+  function aplicarTema() {
+    const oscuro = root.getAttribute('data-theme') === 'dark'
+    const boton = el('btn-tema')
+    boton.setAttribute('aria-pressed', oscuro ? 'true' : 'false')
+    boton.textContent = oscuro ? 'Tema claro' : 'Tema oscuro'
+    boton.setAttribute('aria-label', oscuro ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro')
+    dibujarEscena()
+    dibujarGrafica()
+  }
+  function aplicarContraste() {
+    const alto = root.getAttribute('data-contraste') === 'alto'
+    const boton = el('btn-contraste')
+    boton.setAttribute('aria-pressed', alto ? 'true' : 'false')
+    boton.textContent = alto ? 'Contraste normal' : 'Alto contraste'
+    boton.setAttribute('aria-label', alto ? 'Quitar el alto contraste' : 'Activar el alto contraste')
+    dibujarEscena()
+    dibujarGrafica()
+  }
+  function aplicarFuente() {
+    const factor = numero(root.style.getPropertyValue('--fs').replace('rem', ''), 1)
+    // «data-letra» avisa a la hoja de estilos de que la cabecera ya no cabe fija.
+    root.setAttribute('data-letra', factor > 1.125 ? 'grande' : 'normal')
+    dibujarEscena()
+    dibujarGrafica()
+  }
+  function aplicarMovimiento() {
+    const reducido = root.getAttribute('data-movimiento') === 'reducido'
+    const boton = el('btn-movimiento')
+    boton.setAttribute('aria-pressed', reducido ? 'true' : 'false')
+    boton.textContent = reducido ? 'Animación normal' : 'Menos movimiento'
+    boton.setAttribute('aria-label', reducido ? 'Volver a la animación normal' : 'Reducir la animación')
+    // «Menos movimiento» tiene que significar pausa de verdad: el CSS por sí solo
+    // no detiene las 120 partículas, que siguen consumiendo cuadro completo.
+    marcarPausa(reducido)
+  }
+
+  el('btn-tema').addEventListener('click', () => {
+    const oscuro = root.getAttribute('data-theme') === 'dark'
+    root.setAttribute('data-theme', oscuro ? 'light' : 'dark')
+    guardarPref(PREFS.tema, oscuro ? 'light' : 'dark')
+    aplicarTema()
+    anunciar(oscuro ? 'Tema claro.' : 'Tema oscuro.')
+  })
+  el('btn-contraste').addEventListener('click', () => {
+    const alto = root.getAttribute('data-contraste') === 'alto'
+    if (alto) root.removeAttribute('data-contraste')
+    else root.setAttribute('data-contraste', 'alto')
+    guardarPref(PREFS.contraste, alto ? 'normal' : 'alto')
+    aplicarContraste()
+    anunciar(alto ? 'Contraste normal.' : 'Alto contraste.')
+  })
+  el('btn-texto-menos').addEventListener('click', () => {
+    const actual = numero(root.style.getPropertyValue('--fs').replace('rem', ''), 1)
+    const nuevo = limitar(Math.round((actual - 0.125) * 1000) / 1000, 0.875, 1.5)
+    root.style.setProperty('--fs', nuevo + 'rem')
+    guardarPref(PREFS.fs, String(nuevo))
+    aplicarFuente()
+    anunciar(nuevo === actual
+      ? 'Tamaño de letra en el mínimo: 88 por ciento.'
+      : 'Tamaño de letra ' + fmt(nuevo * 100, 0) + ' por ciento.')
+  })
+  el('btn-texto-mas').addEventListener('click', () => {
+    const actual = numero(root.style.getPropertyValue('--fs').replace('rem', ''), 1)
+    const nuevo = limitar(Math.round((actual + 0.125) * 1000) / 1000, 0.875, 1.5)
+    root.style.setProperty('--fs', nuevo + 'rem')
+    guardarPref(PREFS.fs, String(nuevo))
+    aplicarFuente()
+    anunciar(nuevo === actual
+      ? 'Tamaño de letra en el máximo: 150 por ciento.'
+      : 'Tamaño de letra ' + fmt(nuevo * 100, 0) + ' por ciento.')
+  })
+  el('btn-movimiento').addEventListener('click', () => {
+    const reducido = root.getAttribute('data-movimiento') === 'reducido'
+    if (reducido) root.removeAttribute('data-movimiento')
+    else root.setAttribute('data-movimiento', 'reducido')
+    guardarPref(PREFS.movimiento, reducido ? 'normal' : 'reducido')
+    aplicarMovimiento()
+    anunciar(reducido ? 'Animación normal.' : 'Animación reducida: la simulación queda pausada y avanza con «Avanzar 0,05 s».')
+  })
+
+  function tecla(evento) {
+    const objetivo = evento.target
+    const etiqueta = objetivo && objetivo.tagName ? String(objetivo.tagName).toUpperCase() : ''
+    // Los atajos deben funcionar con el foco puesto en un deslizador, que es donde
+    // se está todo el rato. Solo ceden donde se teclea texto o en un desplegable.
+    const escribe = etiqueta === 'TEXTAREA' || etiqueta === 'SELECT' ||
+      (etiqueta === 'INPUT' && objetivo.type !== 'range')
+    if (escribe || (objetivo && objetivo.isContentEditable)) return
+    if (evento.ctrlKey || evento.metaKey || evento.altKey) return
+    const codigo = String(evento.key)
+    if (codigo === ' ' || codigo === 'Spacebar') {
+      // Sobre un botón la Espacio la gestiona el navegador: activar ese botón.
+      if (etiqueta === 'BUTTON') return
+      evento.preventDefault()
+      cambiarPausa()
+    }
+    else if (codigo === 'r' || codigo === 'R') { evento.preventDefault(); iniciar() }
+    else if (codigo === 'm' || codigo === 'M') { evento.preventDefault(); el('btn-movimiento').click() }
+    else if (codigo === 't' || codigo === 'T') { evento.preventDefault(); el('btn-tema').click() }
+  }
+  document.addEventListener('keydown', tecla)
+
+  /* ---------------- bucle ---------------- */
+  let ultimo = 0
+  let rafId = null
+  function ahora() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') return performance.now()
+    return Date.now()
+  }
+  function bucle(ahoraMs) {
+    // Se pide el siguiente cuadro antes de trabajar: así hay SIEMPRE un solo bucle
+    // y «Reiniciar» no encadena uno nuevo encima del anterior.
+    rafId = requestAnimationFrame(bucle)
+    const bruto = Number.isFinite(ahoraMs) ? (ahoraMs - ultimo) / 1000 : 0
+    ultimo = Number.isFinite(ahoraMs) ? ahoraMs : ultimo
+    const dt = limitar(bruto, 0, DT_MAXIMO)
+    if (running) {
+      t += dt
+      avanzarParticulas(dt * st.velocidad)
+      if (t >= siguienteLectura) { nuevaLectura(); siguienteLectura = t + LECTURA_CADA }
+      if (t >= siguienteMuestra) { registrarMuestra(); siguienteMuestra = t + MUESTRA_CADA }
+      if (t >= siguienteRefresco) {
+        escribirLecturas()
+        sincronizarAvisos()
+        siguienteRefresco = t + REFRESCO_PANEL
+      }
+      relojAnuncios += dt
+      if (relojAnuncios >= CADENCIA_ANUNCIO) { anunciar(estadoCorto(estadoModelo())); relojAnuncios = 0 }
+      dibujarEscena()
+      dibujarGrafica()
+    }
+  }
+  function arrancarBucle() {
+    if (rafId !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId)
+    ultimo = ahora()
+    rafId = requestAnimationFrame(bucle)
+  }
+
+  // El hueco del canvas cambia de ancho con la ventana: al encoger hay que
+  // rehacer el lienzo, porque en pausa el bucle no lo vuelve a dibujar.
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', () => {
+      dibujarEscena()
+      dibujarGrafica()
+    })
+  }
+
+  /* ---------------- arranque ---------------- */
+  function iniciar() {
+    st.modo = INICIAL.modo
+    st.V = INICIAL.V
+    st.T = INICIAL.T
+    st.n = INICIAL.n
+    st.M = INICIAL.M
+    st.velocidad = INICIAL.velocidad
+    fijo.T = INICIAL.T
+    fijo.n = INICIAL.n
+    fijo.V = INICIAL.V
+    fijo.p = modelo.presion(INICIAL.n, INICIAL.T, INICIAL.V)
+    ventana.min = T_MIN
+    ventana.max = T_MAX
+    ventana.degenerada = false
+    t = 0
+    muestras = []
+    choquesPiston.eventos.length = 0
+    choquesPiston.tasa = 0
+    siguienteMuestra = 0
+    siguienteLectura = 0
+    siguienteRefresco = 0
+    relojAnuncios = 0
+    instrumento.valor = semillaInstrumento
+    particulasSeed.valor = semillaParticulas
+    el('modo').value = '1'
+    el('volumen').value = String(INICIAL.V)
+    el('temperatura').value = String(INICIAL.T)
+    el('moles').value = String(INICIAL.n)
+    el('masa-molar').value = String(INICIAL.M)
+    el('velocidad').value = String(INICIAL.velocidad)
+    el('tipo-grafica').value = 'p-v'
+    aplicarVentana()
+    crearParticulas(INICIAL.V, modelo.vrms(INICIAL.T, INICIAL.M) * FACTOR_PX)
+    nuevaLectura()
+    sincronizarControles()
+    sincronizarAvisos()
+    escribirLecturas()
+    registrarMuestra()
+    pintarTabla()
+    vaciarPuntos()
+    // Con «Menos movimiento» activo la simulación arranca pausada: iniciar() no
+    // puede pisar la preferencia del usuario.
+    marcarPausa(root.getAttribute('data-movimiento') === 'reducido')
+    dibujarEscena()
+    dibujarGrafica()
+    actualizarEstadoForzado()
+    arrancarBucle()
+  }
+
+  const preferidoTema = leerPref(PREFS.tema, '')
+  if (preferidoTema === 'dark' || preferidoTema === 'light') root.setAttribute('data-theme', preferidoTema)
+  else if (coincideMedia('(prefers-color-scheme: dark)')) root.setAttribute('data-theme', 'dark')
+  if (leerPref(PREFS.contraste, '') === 'alto') root.setAttribute('data-contraste', 'alto')
+  const fuenteGuardada = numero(leerPref(PREFS.fs, '1'), 1)
+  root.style.setProperty('--fs', limitar(fuenteGuardada, 0.875, 1.5) + 'rem')
+  if (leerPref(PREFS.movimiento, '') === 'reducido' || coincideMedia('(prefers-reduced-motion: reduce)')) {
+    root.setAttribute('data-movimiento', 'reducido')
+  }
+
+  aplicarTema()
+  aplicarContraste()
+  aplicarFuente()
+  aplicarMovimiento()
+
+  iniciar()
+
+  try {
+    if (typeof window.matchMedia === 'function') {
+      const sTema = window.matchMedia('(prefers-color-scheme: dark)')
+      const oirTema = () => {
+        if (leerPref(PREFS.tema, '') === '') {
+          root.setAttribute('data-theme', sTema.matches ? 'dark' : 'light')
+          aplicarTema()
+        }
+      }
+      if (typeof sTema.addEventListener === 'function') sTema.addEventListener('change', oirTema)
+      else if (typeof sTema.addListener === 'function') sTema.addListener(oirTema)
+      const sMov = window.matchMedia('(prefers-reduced-motion: reduce)')
+      const oirMov = () => {
+        if (leerPref(PREFS.movimiento, '') === '' && sMov.matches) {
+          root.setAttribute('data-movimiento', 'reducido')
+          aplicarMovimiento()
+          marcarPausa(true)
+        }
+      }
+      if (typeof sMov.addEventListener === 'function') sMov.addEventListener('change', oirMov)
+      else if (typeof sMov.addListener === 'function') sMov.addListener(oirMov)
+    }
+  } catch (error) {
+    /* el navegador no ofrece matchMedia: se queda la preferencia guardada */
+  }
+})()
+</script>
+</body>
+</html>
