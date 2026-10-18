@@ -1,0 +1,3269 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IQ Arrows</title>
+<style>
+:root{
+  --red:#e13b4a; --orange:#f4913a; --yellow:#f2c72e; --green:#43a047;
+  --blue:#2f8fe6; --purple:#9b59b6;
+  --tinta:#2b2b33; --papel:#f6f2e7; --papel-b:#fffdf6; --linea:#c9b98a;
+  --bandeja:#2f7fb8; --celda:#e9e2cf; --ok:#2e7d32; --ko:#b3261e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{scrollbar-gutter:stable}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:#eef3f8;color:var(--tinta);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  font-size:16px;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* ---------- cabecera ---------- */
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;
+  padding:.5rem .8rem;background:var(--bandeja);color:#fff;
+}
+header h1{font-size:1.15rem;margin:0;letter-spacing:.06em;text-transform:uppercase}
+.navegador{display:flex;align-items:center;gap:.35rem;margin-left:auto}
+.navegador .btn{font-size:1.3rem;line-height:1;padding:.25rem .7rem}
+.chip{background:#fff;color:#1c5a86;border-radius:999px;padding:.25rem .7rem;font-weight:700;min-width:6.5rem;text-align:center}
+.nivel{border-radius:999px;padding:.25rem .7rem;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.05em;background:#8fd694;color:#14521d}
+.btn{border:0;border-radius:.55rem;padding:.5rem .8rem;background:#eaf3fa;font-weight:600}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:#ffd45e;color:#4a3000}
+select{font:inherit;border-radius:.45rem;border:0;padding:.4rem .5rem;background:#eaf3fa}
+
+/* ---------- layout ---------- */
+main{display:flex;flex-wrap:wrap;gap:1rem;padding:1rem;max-width:1080px;margin:0 auto;align-items:flex-start}
+.juego{display:flex;flex-direction:column;gap:.8rem;align-items:center;width:min(94vw,560px)}
+
+/* ---------- tablero ---------- */
+.tablero{
+  display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(3,1fr);gap:.4rem;
+  background:var(--bandeja);padding:.55rem;border-radius:1rem;
+  width:min(94vw,560px);
+}
+.celda{
+  background:var(--celda);border-radius:.5rem;display:flex;align-items:center;justify-content:center;
+  position:relative;touch-action:manipulation;aspect-ratio:1;min-width:0;overflow:hidden;
+  font-weight:800;cursor:pointer;
+}
+.arw{width:80%;height:80%;display:block;pointer-events:none}
+.celda.lleno{color:#fff}
+.celda.ok{outline:4px solid #7bd389;outline-offset:-4px}
+.celda.malo{outline:4px solid #ff8a80;outline-offset:-4px}
+
+/* ---------- bandeja ---------- */
+.bandeja{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;
+  background:#e7d9ae;padding:.55rem;border-radius:1rem;width:min(94vw,560px);
+}
+.ficha{
+  background:#fff;border-radius:.5rem;display:flex;align-items:center;justify-content:center;
+  padding:.4rem;touch-action:manipulation;min-height:6.5rem;
+}
+.ficha.elegida{outline:4px solid var(--bandeja);outline-offset:2px}
+.ficha.puesta{opacity:.45}
+.mini{display:grid;gap:2px;margin:0 auto}
+.mini .pc{
+  width:2rem;height:2rem;border-radius:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.mini .pc.vac{background:transparent;border:1px dashed #cfc6ab}
+
+/* ---------- acciones / mensaje ---------- */
+.acciones{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
+.mensaje{min-height:2.6rem;font-weight:600;text-align:center;width:100%}
+.mensaje.ok{color:var(--ok)}
+.mensaje.ko{color:var(--ko)}
+.mensaje.av{color:#1c5a86}
+
+/* ---------- ayuda ---------- */
+.ayuda{
+  flex:1 1 320px;min-width:290px;background:var(--papel);border:2px solid var(--linea);
+  border-radius:.8rem;padding:.8rem 1rem;font-size:.9rem;line-height:1.45;
+}
+.ayuda h2{margin:0 0 .5rem;font-size:.8rem;letter-spacing:.16em;text-transform:uppercase;text-align:center}
+.ayuda p{margin:.4rem 0}
+.ayuda .clave{display:flex;gap:.5rem;align-items:center;margin:.35rem 0}
+.ayuda .clave .sw{width:1.3rem;height:1.3rem;border-radius:.3rem;flex:0 0 auto}
+.ayuda ul{margin:.3rem 0 .3rem 1.1rem;padding:0}
+.ayuda li{margin:.15rem 0}
+@media (max-width:760px){ main{padding:.6rem} .ayuda{order:2} }
+</style>
+</head>
+<body>
+<header>
+  <h1>IQ&nbsp;Arrows</h1>
+  <span class="nivel" id="nivel">starter</span>
+  <div class="navegador">
+    <button class="btn" id="anterior" title="Reto anterior">&#8249;</button>
+    <span class="chip" id="chip">Reto 1</span>
+    <button class="btn" id="siguiente" title="Reto siguiente">&#8250;</button>
+    <select id="lista" title="Ir a un reto"></select>
+  </div>
+</header>
+
+<main>
+  <section class="juego">
+    <div class="tablero" id="tablero"></div>
+    <div class="bandeja" id="bandeja"></div>
+    <div class="acciones">
+      <button class="btn" id="rotar">Rotar &#8635;</button>
+      <button class="btn primary" id="comprobar">Comprobar</button>
+      <button class="btn" id="solucion">Ver solución</button>
+      <button class="btn" id="reiniciar">Reiniciar</button>
+    </div>
+    <p class="mensaje" id="mensaje"></p>
+  </section>
+
+  <section class="ayuda">
+    <h2>Cómo se juega</h2>
+    <p>Hay <b>seis fichas</b>, una de cada color y con una forma distinta. Cada ficha se puede
+    girar <b>0, 90, 180 o 270&deg;</b>: al girarla cambian su forma en el tablero y la
+    dirección de sus flechas.</p>
+    <p>Coloca las seis fichas para <b>llenar por completo</b> el tablero de 3&times;6
+    cumpliendo las pistas de cada casilla:</p>
+    <ul>
+      <li>la <b>flecha</b> de la ficha debe apuntar igual que la flecha impresa;</li>
+      <li>si la flecha de la casilla es de <b>color</b>, la ficha que la cubra debe ser de ese color (la flecha en negro no da pista de color).</li>
+    </ul>
+    <p>Para jugar: toca una ficha para <b>elegirla</b>, usa <b>Rotar</b> para girarla y toca
+    una casilla libre para <b>colocarla</b>. Toca una ficha colocada para <b>recogla</b>.
+    Con <b>Comprobar</b> se marca en verde lo correcto y en rojo lo que falta ajustar.</p>
+    <p>Clave de las fichas:</p>
+    <div class="clave"><span class="sw" style="background:var(--red)"></span> roja &mdash; 3 en l&iacute;nea</div>
+    <div class="clave"><span class="sw" style="background:var(--orange)"></span> naranja &mdash; 3 en L</div>
+    <div class="clave"><span class="sw" style="background:var(--yellow)"></span> amarillo &mdash; 3 en L</div>
+    <div class="clave"><span class="sw" style="background:var(--green)"></span> verde &mdash; 3 en L</div>
+    <div class="clave"><span class="sw" style="background:var(--blue)"></span> azul &mdash; 4 en L (3+1)</div>
+    <div class="clave"><span class="sw" style="background:var(--purple)"></span> morada &mdash; 2</div>
+  </section>
+</main>
+
+<script type="application/json" id="datos">
+{
+  "juego": "IQ Arrows (6 fichas fijas con rotacion 0/90/180/270)",
+  "tablero": [3, 6],
+  "colores": ["red", "orange", "yellow", "green", "blue", "purple"],
+  "fichas": [
+    {"color": "red",    "celdas": [[0, 0, "R"], [0, 1, "D"], [0, 2, "U"]]},
+    {"color": "orange", "celdas": [[0, 0, "R"], [1, 0, "D"], [1, 1, "U"]]},
+    {"color": "yellow", "celdas": [[0, 0, "L"], [0, 1, "U"], [1, 0, "L"]]},
+    {"color": "green",  "celdas": [[0, 0, "U"], [0, 1, "D"], [1, 1, "L"]]},
+    {"color": "blue",   "celdas": [[0, 0, "U"], [0, 1, "R"], [0, 2, "R"], [1, 2, "U"]]},
+    {"color": "purple", "celdas": [[0, 0, "D"], [0, 1, "U"]]}
+  ],
+  "retos": [
+    {
+      "n": 1,
+      "nivel": "starter",
+      "dirs": [
+        ["U", "D", "L", "U", "D", "U"],
+        ["R", "L", "L", "U", "R", "R"],
+        ["D", "U", "R", "D", "U", "U"]
+      ],
+      "given": [
+        ["green", "green", null, null, "purple", "purple"],
+        ["orange", "green", null, null, "blue", "blue"],
+        [null, null, "red", "red", null, null]
+      ],
+      "solution": [
+        ["green", "green", "yellow", "yellow", "purple", "purple"],
+        ["orange", "green", "yellow", "blue", "blue", "blue"],
+        ["orange", "orange", "red", "red", "red", "blue"]
+      ]
+    },
+    {
+      "n": 2,
+      "nivel": "starter",
+      "dirs": [
+        ["R", "D", "U", "R", "L", "U"],
+        ["L", "D", "U", "L", "L", "L"],
+        ["R", "L", "L", "D", "U", "R"]
+      ],
+      "given": [
+        [null, "red", null, "green", null, "yellow"],
+        ["purple", null, "green", null, "yellow", null],
+        [null, "blue", null, "blue", null, "orange"]
+      ],
+      "solution": [
+        ["red", "red", "red", "green", "yellow", "yellow"],
+        ["purple", "blue", "green", "green", "yellow", "orange"],
+        ["purple", "blue", "blue", "blue", "orange", "orange"]
+      ]
+    },
+    {
+      "n": 3,
+      "nivel": "starter",
+      "dirs": [
+        ["D", "U", "L", "U", "R", "R"],
+        ["R", "D", "R", "L", "R", "U"],
+        ["L", "D", "R", "R", "D", "U"]
+      ],
+      "given": [
+        ["red", null, "red", null, "blue", null],
+        ["green", null, "yellow", null, "orange", null],
+        ["green", null, "yellow", null, "orange", null]
+      ],
+      "solution": [
+        ["red", "red", "red", "blue", "blue", "blue"],
+        ["green", "green", "yellow", "purple", "orange", "blue"],
+        ["green", "yellow", "yellow", "purple", "orange", "orange"]
+      ]
+    },
+    {
+      "n": 4,
+      "nivel": "starter",
+      "dirs": [
+        ["L", "U", "D", "U", "R", "L"],
+        ["L", "L", "D", "U", "L", "R"],
+        ["U", "R", "L", "L", "D", "U"]
+      ],
+      "given": [
+        [null, "yellow", null, null, "green", null],
+        ["yellow", null, "blue", "green", null, "red"],
+        [null, "orange", null, null, "blue", null]
+      ],
+      "solution": [
+        ["yellow", "yellow", "purple", "purple", "green", "red"],
+        ["yellow", "orange", "blue", "green", "green", "red"],
+        ["orange", "orange", "blue", "blue", "blue", "red"]
+      ]
+    },
+    {
+      "n": 5,
+      "nivel": "starter",
+      "dirs": [
+        ["U", "U", "R", "R", "D", "U"],
+        ["D", "R", "D", "U", "R", "L"],
+        ["L", "L", "D", "U", "L", "R"]
+      ],
+      "given": [
+        ["yellow", null, null, null, null, "red"],
+        ["blue", null, null, null, null, "purple"],
+        ["blue", null, null, null, null, "purple"]
+      ],
+      "solution": [
+        ["yellow", "yellow", "orange", "red", "red", "red"],
+        ["blue", "yellow", "orange", "orange", "green", "purple"],
+        ["blue", "blue", "blue", "green", "green", "purple"]
+      ]
+    },
+    {
+      "n": 6,
+      "nivel": "starter",
+      "dirs": [
+        ["L", "U", "U", "R", "R", "L"],
+        ["L", "U", "D", "R", "U", "R"],
+        ["D", "U", "L", "D", "U", "U"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        [null, null, null, null, null, null],
+        ["purple", "purple", "green", "orange", "orange", "red"]
+      ],
+      "solution": [
+        ["yellow", "yellow", "blue", "blue", "blue", "red"],
+        ["yellow", "green", "green", "orange", "blue", "red"],
+        ["purple", "purple", "green", "orange", "orange", "red"]
+      ]
+    },
+    {
+      "n": 7,
+      "nivel": "starter",
+      "dirs": [
+        ["R", "U", "U", "U", "L", "L"],
+        ["D", "U", "R", "U", "R", "R"],
+        ["R", "D", "U", "L", "U", "D"]
+      ],
+      "given": [
+        [null, null, "yellow", "blue", null, null],
+        [null, null, "yellow", "blue", null, null],
+        [null, null, "red", "blue", null, null]
+      ],
+      "solution": [
+        ["orange", "yellow", "yellow", "blue", "blue", "purple"],
+        ["orange", "orange", "yellow", "blue", "green", "purple"],
+        ["red", "red", "red", "blue", "green", "green"]
+      ]
+    },
+    {
+      "n": 8,
+      "nivel": "starter",
+      "dirs": [
+        ["L", "D", "D", "R", "D", "U"],
+        ["R", "R", "L", "L", "D", "R"],
+        ["D", "R", "D", "U", "U", "L"]
+      ],
+      "given": [
+        [null, "orange", "blue", null, null, null],
+        [null, null, null, null, null, null],
+        [null, null, null, "purple", "green", null]
+      ],
+      "solution": [
+        ["orange", "orange", "blue", "red", "red", "red"],
+        ["orange", "yellow", "blue", "blue", "blue", "green"],
+        ["yellow", "yellow", "purple", "purple", "green", "green"]
+      ]
+    },
+    {
+      "n": 9,
+      "nivel": "starter",
+      "dirs": [
+        ["D", "R", "D", "U", "R", "D"],
+        ["L", "L", "D", "L", "L", "R"],
+        ["D", "U", "U", "R", "D", "R"]
+      ],
+      "given": [
+        [null, null, "red", null, null, "green"],
+        [null, "blue", null, null, "green", null],
+        ["purple", null, null, "orange", null, null]
+      ],
+      "solution": [
+        ["blue", "red", "red", "red", "green", "green"],
+        ["blue", "blue", "blue", "orange", "green", "yellow"],
+        ["purple", "purple", "orange", "orange", "yellow", "yellow"]
+      ]
+    },
+    {
+      "n": 10,
+      "nivel": "starter",
+      "dirs": [
+        ["D", "U", "D", "U", "L", "L"],
+        ["L", "U", "D", "D", "U", "R"],
+        ["D", "D", "L", "L", "L", "D"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        ["yellow", "green", "green", "blue", "orange", "orange"],
+        [null, null, null, null, null, null]
+      ],
+      "solution": [
+        ["purple", "purple", "red", "red", "red", "orange"],
+        ["yellow", "green", "green", "blue", "orange", "orange"],
+        ["yellow", "yellow", "green", "blue", "blue", "blue"]
+      ]
+    },
+    {
+      "n": 11,
+      "nivel": "starter",
+      "dirs": [
+        ["U", "D", "R", "D", "U", "R"],
+        ["D", "L", "D", "U", "D", "R"],
+        ["L", "L", "D", "L", "D", "U"]
+      ],
+      "given": [
+        [null, null, null, null, null, "yellow"],
+        [null, null, null, null, null, "yellow"],
+        ["blue", "blue", null, null, null, null]
+      ],
+      "solution": [
+        ["green", "green", "red", "red", "red", "yellow"],
+        ["blue", "green", "orange", "orange", "yellow", "yellow"],
+        ["blue", "blue", "blue", "orange", "purple", "purple"]
+      ]
+    },
+    {
+      "n": 12,
+      "nivel": "starter",
+      "dirs": [
+        ["U", "R", "R", "L", "U", "D"],
+        ["L", "R", "U", "L", "L", "L"],
+        ["R", "U", "D", "U", "R", "R"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        [null, null, null, "yellow", "orange", "red"],
+        [null, null, null, null, null, null]
+      ],
+      "solution": [
+        ["blue", "blue", "blue", "yellow", "yellow", "red"],
+        ["purple", "green", "blue", "yellow", "orange", "red"],
+        ["purple", "green", "green", "orange", "orange", "red"]
+      ]
+    },
+    {
+      "n": 13,
+      "nivel": "starter",
+      "dirs": [
+        ["L", "U", "D", "U", "U", "D"],
+        ["L", "U", "R", "R", "R", "L"],
+        ["D", "U", "L", "U", "D", "U"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        [null, "blue", "blue", "blue", null, null],
+        [null, null, null, "blue", null, null]
+      ],
+      "solution": [
+        ["yellow", "yellow", "purple", "purple", "green", "green"],
+        ["yellow", "blue", "blue", "blue", "orange", "green"],
+        ["red", "red", "red", "blue", "orange", "orange"]
+      ]
+    },
+    {
+      "n": 14,
+      "nivel": "starter",
+      "dirs": [
+        ["U", "U", "D", "U", "R", "D"],
+        ["R", "R", "R", "D", "D", "L"],
+        ["D", "U", "L", "R", "D", "R"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        ["orange", null, null, null, null, null],
+        [null, "orange", null, null, null, null]
+      ],
+      "solution": [
+        ["yellow", "yellow", "purple", "purple", "blue", "red"],
+        ["orange", "yellow", "green", "green", "blue", "red"],
+        ["orange", "orange", "green", "blue", "blue", "red"]
+      ]
+    },
+    {
+      "n": 15,
+      "nivel": "starter",
+      "dirs": [
+        ["D", "U", "R", "D", "R", "D"],
+        ["L", "D", "D", "L", "L", "R"],
+        ["R", "R", "D", "R", "D", "R"]
+      ],
+      "given": [
+        ["purple", null, null, null, null, "green"],
+        [null, null, null, null, null, null],
+        ["orange", null, null, null, null, "yellow"]
+      ],
+      "solution": [
+        ["purple", "purple", "blue", "red", "green", "green"],
+        ["orange", "orange", "blue", "red", "green", "yellow"],
+        ["orange", "blue", "blue", "red", "yellow", "yellow"]
+      ]
+    },
+    {
+      "n": 16,
+      "nivel": "starter",
+      "dirs": [
+        ["D", "U", "L", "L", "D", "U"],
+        ["L", "U", "L", "R", "R", "L"],
+        ["R", "L", "D", "D", "U", "D"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        [null, null, "yellow", "purple", null, null],
+        [null, null, null, null, null, null]
+      ],
+      "solution": [
+        ["red", "blue", "blue", "purple", "orange", "orange"],
+        ["red", "blue", "yellow", "purple", "green", "orange"],
+        ["red", "blue", "yellow", "yellow", "green", "green"]
+      ]
+    },
+    {
+      "n": 17,
+      "nivel": "starter",
+      "dirs": [
+        ["R", "D", "U", "R", "L", "D"],
+        ["L", "R", "D", "D", "R", "R"],
+        ["R", "L", "R", "D", "D", "R"]
+      ],
+      "given": [
+        [null, null, null, null, null, null],
+        [null, null, "green", "blue", null, null],
+        [null, null, null, null, null, null]
+      ],
+      "solution": [
+        ["red", "red", "red", "blue", "orange", "orange"],
+        ["purple", "green", "green", "blue", "orange", "yellow"],
+        ["purple", "green", "blue", "blue", "yellow", "yellow"]
+      ]
+    },
+    {
+      "n": 18,
+      "nivel": "starter",
+      "dirs": [
+        ["L", "U", "R", "R", "U", "U"],
+        ["R", "L", "R", "U", "R", "R"],
+        ["U", "R", "U", "D", "D", "U"]
+      ],
+      "given": [
+        ["red", null, null, null, null, null],
+        ["red", null, null, null, null, null],
+        ["red", null, null, null, null, null]
+      ],
+      "solution": [
+        ["red", "blue", "blue", "blue", "yellow", "yellow"],
+        ["red", "purple", "green", "blue", "orange", "yellow"],
+        ["red", "purple", "green", "green", "orange", "orange"]
+      ]
+    },
+    {
+      "n": 19,
+      "nivel": "starter",
+      "dirs": [
+        [
+          "U",
+          "L",
+          "R",
+          "L",
+          "U",
+          "L"
+        ],
+        [
+          "U",
+          "U",
+          "L",
+          "L",
+          "U",
+          "R"
+        ],
+        [
+          "L",
+          "D",
+          "U",
+          "D",
+          "U",
+          "L"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          "green",
+          "green",
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "blue",
+          "blue",
+          "green",
+          "yellow",
+          "yellow",
+          "orange"
+        ],
+        [
+          "blue",
+          "green",
+          "green",
+          "yellow",
+          "orange",
+          "orange"
+        ],
+        [
+          "blue",
+          "purple",
+          "purple",
+          "red",
+          "red",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 20,
+      "nivel": "starter",
+      "dirs": [
+        [
+          "L",
+          "D",
+          "U",
+          "U",
+          "D",
+          "R"
+        ],
+        [
+          "R",
+          "L",
+          "D",
+          "R",
+          "L",
+          "D"
+        ],
+        [
+          "U",
+          "R",
+          "D",
+          "R",
+          "R",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          "orange",
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "purple",
+          "purple",
+          "green",
+          "green",
+          "blue"
+        ],
+        [
+          "red",
+          "orange",
+          "orange",
+          "yellow",
+          "green",
+          "blue"
+        ],
+        [
+          "red",
+          "orange",
+          "yellow",
+          "yellow",
+          "blue",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 21,
+      "nivel": "starter",
+      "dirs": [
+        [
+          "D",
+          "D",
+          "U",
+          "D",
+          "U",
+          "R"
+        ],
+        [
+          "L",
+          "R",
+          "L",
+          "D",
+          "D",
+          "R"
+        ],
+        [
+          "R",
+          "U",
+          "D",
+          "L",
+          "L",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "red",
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "orange",
+          "orange",
+          "purple",
+          "purple",
+          "yellow"
+        ],
+        [
+          "red",
+          "green",
+          "orange",
+          "blue",
+          "yellow",
+          "yellow"
+        ],
+        [
+          "red",
+          "green",
+          "green",
+          "blue",
+          "blue",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 22,
+      "nivel": "starter",
+      "dirs": [
+        [
+          "U",
+          "D",
+          "U",
+          "L",
+          "L",
+          "D"
+        ],
+        [
+          "L",
+          "L",
+          "U",
+          "R",
+          "R",
+          "L"
+        ],
+        [
+          "D",
+          "D",
+          "L",
+          "D",
+          "U",
+          "R"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          "red"
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "yellow",
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "green",
+          "green",
+          "blue",
+          "blue",
+          "purple",
+          "red"
+        ],
+        [
+          "yellow",
+          "green",
+          "blue",
+          "orange",
+          "purple",
+          "red"
+        ],
+        [
+          "yellow",
+          "yellow",
+          "blue",
+          "orange",
+          "orange",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 23,
+      "nivel": "starter",
+      "dirs": [
+        [
+          "U",
+          "L",
+          "D",
+          "U",
+          "L",
+          "L"
+        ],
+        [
+          "U",
+          "R",
+          "U",
+          "U",
+          "R",
+          "R"
+        ],
+        [
+          "L",
+          "D",
+          "U",
+          "R",
+          "U",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          "orange",
+          null,
+          null,
+          "green",
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "blue",
+          "blue",
+          "red",
+          "red",
+          "red",
+          "purple"
+        ],
+        [
+          "blue",
+          "orange",
+          "yellow",
+          "yellow",
+          "green",
+          "purple"
+        ],
+        [
+          "blue",
+          "orange",
+          "orange",
+          "yellow",
+          "green",
+          "green"
+        ]
+      ]
+    },
+    {
+      "n": 24,
+      "nivel": "starter",
+      "dirs": [
+        [
+          "L",
+          "D",
+          "R",
+          "D",
+          "U",
+          "R"
+        ],
+        [
+          "R",
+          "R",
+          "L",
+          "D",
+          "U",
+          "D"
+        ],
+        [
+          "U",
+          "L",
+          "D",
+          "D",
+          "R",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          "yellow",
+          "yellow",
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "orange",
+          "orange",
+          "red",
+          "red",
+          "red",
+          "blue"
+        ],
+        [
+          "orange",
+          "green",
+          "yellow",
+          "purple",
+          "purple",
+          "blue"
+        ],
+        [
+          "green",
+          "green",
+          "yellow",
+          "yellow",
+          "blue",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 25,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "R",
+          "D",
+          "D",
+          "U",
+          "R"
+        ],
+        [
+          "R",
+          "L",
+          "U",
+          "U",
+          "L",
+          "D"
+        ],
+        [
+          "R",
+          "D",
+          "U",
+          "R",
+          "R",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "purple",
+          "green",
+          "green",
+          "orange",
+          "orange",
+          "blue"
+        ],
+        [
+          "purple",
+          "green",
+          "yellow",
+          "yellow",
+          "orange",
+          "blue"
+        ],
+        [
+          "red",
+          "red",
+          "red",
+          "yellow",
+          "blue",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 26,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "D",
+          "U",
+          "U",
+          "L",
+          "R",
+          "D"
+        ],
+        [
+          "L",
+          "L",
+          "U",
+          "U",
+          "L",
+          "L"
+        ],
+        [
+          "D",
+          "D",
+          "L",
+          "D",
+          "U",
+          "R"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "orange",
+          "orange",
+          "blue",
+          "blue",
+          "green",
+          "red"
+        ],
+        [
+          "yellow",
+          "orange",
+          "blue",
+          "green",
+          "green",
+          "red"
+        ],
+        [
+          "yellow",
+          "yellow",
+          "blue",
+          "purple",
+          "purple",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 27,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "U",
+          "U",
+          "R",
+          "U",
+          "D"
+        ],
+        [
+          "R",
+          "D",
+          "R",
+          "D",
+          "U",
+          "L"
+        ],
+        [
+          "U",
+          "L",
+          "L",
+          "D",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "yellow",
+          "yellow",
+          "orange",
+          "green",
+          "green"
+        ],
+        [
+          "red",
+          "blue",
+          "yellow",
+          "orange",
+          "orange",
+          "green"
+        ],
+        [
+          "red",
+          "blue",
+          "blue",
+          "blue",
+          "purple",
+          "purple"
+        ]
+      ]
+    },
+    {
+      "n": 28,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "U",
+          "U",
+          "D",
+          "D",
+          "U",
+          "L"
+        ],
+        [
+          "R",
+          "R",
+          "L",
+          "L",
+          "D",
+          "R"
+        ],
+        [
+          "D",
+          "U",
+          "D",
+          "U",
+          "U",
+          "L"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "yellow",
+          "yellow",
+          "blue",
+          "red",
+          "red",
+          "red"
+        ],
+        [
+          "orange",
+          "yellow",
+          "blue",
+          "blue",
+          "blue",
+          "green"
+        ],
+        [
+          "orange",
+          "orange",
+          "purple",
+          "purple",
+          "green",
+          "green"
+        ]
+      ]
+    },
+    {
+      "n": 29,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "U",
+          "L",
+          "L",
+          "U",
+          "L"
+        ],
+        [
+          "R",
+          "U",
+          "R",
+          "L",
+          "R",
+          "R"
+        ],
+        [
+          "U",
+          "L",
+          "D",
+          "U",
+          "U",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "blue",
+          "blue",
+          "yellow",
+          "yellow",
+          "purple"
+        ],
+        [
+          "red",
+          "blue",
+          "orange",
+          "yellow",
+          "green",
+          "purple"
+        ],
+        [
+          "red",
+          "blue",
+          "orange",
+          "orange",
+          "green",
+          "green"
+        ]
+      ]
+    },
+    {
+      "n": 30,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "R",
+          "D",
+          "D",
+          "D",
+          "U",
+          "L"
+        ],
+        [
+          "L",
+          "R",
+          "L",
+          "L",
+          "D",
+          "L"
+        ],
+        [
+          "D",
+          "R",
+          "D",
+          "U",
+          "U",
+          "R"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "green",
+          "green",
+          "blue",
+          "red",
+          "red",
+          "red"
+        ],
+        [
+          "green",
+          "yellow",
+          "blue",
+          "blue",
+          "blue",
+          "orange"
+        ],
+        [
+          "yellow",
+          "yellow",
+          "purple",
+          "purple",
+          "orange",
+          "orange"
+        ]
+      ]
+    },
+    {
+      "n": 31,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "U",
+          "R",
+          "R",
+          "U",
+          "D"
+        ],
+        [
+          "R",
+          "L",
+          "U",
+          "U",
+          "R",
+          "L"
+        ],
+        [
+          "U",
+          "L",
+          "D",
+          "U",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "blue",
+          "blue",
+          "blue",
+          "green",
+          "green"
+        ],
+        [
+          "red",
+          "yellow",
+          "yellow",
+          "blue",
+          "orange",
+          "green"
+        ],
+        [
+          "red",
+          "yellow",
+          "purple",
+          "purple",
+          "orange",
+          "orange"
+        ]
+      ]
+    },
+    {
+      "n": 32,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "D",
+          "U",
+          "D",
+          "R",
+          "L"
+        ],
+        [
+          "R",
+          "U",
+          "U",
+          "L",
+          "D",
+          "R"
+        ],
+        [
+          "D",
+          "U",
+          "R",
+          "R",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "orange",
+          "orange",
+          "green",
+          "green",
+          "blue",
+          "red"
+        ],
+        [
+          "orange",
+          "yellow",
+          "yellow",
+          "green",
+          "blue",
+          "red"
+        ],
+        [
+          "purple",
+          "purple",
+          "yellow",
+          "blue",
+          "blue",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 33,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "D",
+          "U",
+          "L",
+          "R",
+          "L",
+          "D"
+        ],
+        [
+          "L",
+          "D",
+          "U",
+          "D",
+          "R",
+          "R"
+        ],
+        [
+          "D",
+          "D",
+          "R",
+          "D",
+          "U",
+          "L"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "red",
+          "red",
+          "blue",
+          "orange",
+          "orange"
+        ],
+        [
+          "yellow",
+          "purple",
+          "purple",
+          "blue",
+          "orange",
+          "green"
+        ],
+        [
+          "yellow",
+          "yellow",
+          "blue",
+          "blue",
+          "green",
+          "green"
+        ]
+      ]
+    },
+    {
+      "n": 34,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "D",
+          "U",
+          "U",
+          "R",
+          "R",
+          "L"
+        ],
+        [
+          "L",
+          "L",
+          "R",
+          "R",
+          "U",
+          "R"
+        ],
+        [
+          "R",
+          "D",
+          "R",
+          "U",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "orange",
+          "orange",
+          "blue",
+          "blue",
+          "blue",
+          "red"
+        ],
+        [
+          "purple",
+          "orange",
+          "yellow",
+          "green",
+          "blue",
+          "red"
+        ],
+        [
+          "purple",
+          "yellow",
+          "yellow",
+          "green",
+          "green",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 35,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "D",
+          "U",
+          "R",
+          "D",
+          "D",
+          "U"
+        ],
+        [
+          "L",
+          "L",
+          "L",
+          "U",
+          "R",
+          "R"
+        ],
+        [
+          "D",
+          "D",
+          "R",
+          "D",
+          "U",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "orange",
+          "orange",
+          "green",
+          "green",
+          "purple",
+          "purple"
+        ],
+        [
+          "yellow",
+          "orange",
+          "green",
+          "blue",
+          "blue",
+          "blue"
+        ],
+        [
+          "yellow",
+          "yellow",
+          "red",
+          "red",
+          "red",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 36,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "D",
+          "U",
+          "U",
+          "U",
+          "R",
+          "R"
+        ],
+        [
+          "L",
+          "R",
+          "R",
+          "L",
+          "D",
+          "U"
+        ],
+        [
+          "R",
+          "U",
+          "D",
+          "R",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "yellow",
+          "yellow",
+          "blue",
+          "blue",
+          "blue"
+        ],
+        [
+          "red",
+          "green",
+          "yellow",
+          "orange",
+          "orange",
+          "blue"
+        ],
+        [
+          "red",
+          "green",
+          "green",
+          "orange",
+          "purple",
+          "purple"
+        ]
+      ]
+    },
+    {
+      "n": 37,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "L",
+          "D",
+          "U",
+          "R",
+          "R"
+        ],
+        [
+          "R",
+          "R",
+          "U",
+          "U",
+          "R",
+          "U"
+        ],
+        [
+          "R",
+          "D",
+          "U",
+          "R",
+          "U",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "purple",
+          "orange",
+          "orange",
+          "blue",
+          "blue",
+          "blue"
+        ],
+        [
+          "purple",
+          "orange",
+          "yellow",
+          "yellow",
+          "green",
+          "blue"
+        ],
+        [
+          "red",
+          "red",
+          "red",
+          "yellow",
+          "green",
+          "green"
+        ]
+      ]
+    },
+    {
+      "n": 38,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "R",
+          "D",
+          "U",
+          "U",
+          "L",
+          "L"
+        ],
+        [
+          "L",
+          "L",
+          "D",
+          "R",
+          "R",
+          "R"
+        ],
+        [
+          "U",
+          "R",
+          "L",
+          "L",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "green",
+          "green",
+          "yellow",
+          "yellow",
+          "purple",
+          "red"
+        ],
+        [
+          "green",
+          "orange",
+          "blue",
+          "yellow",
+          "purple",
+          "red"
+        ],
+        [
+          "orange",
+          "orange",
+          "blue",
+          "blue",
+          "blue",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 39,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "R",
+          "D",
+          "U",
+          "U",
+          "R",
+          "R"
+        ],
+        [
+          "U",
+          "D",
+          "U",
+          "U",
+          "R",
+          "U"
+        ],
+        [
+          "D",
+          "U",
+          "L",
+          "R",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "green",
+          "purple",
+          "purple",
+          "blue",
+          "blue",
+          "blue"
+        ],
+        [
+          "green",
+          "green",
+          "yellow",
+          "yellow",
+          "orange",
+          "blue"
+        ],
+        [
+          "red",
+          "red",
+          "red",
+          "yellow",
+          "orange",
+          "orange"
+        ]
+      ]
+    },
+    {
+      "n": 40,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "R",
+          "D",
+          "D",
+          "U",
+          "L",
+          "R"
+        ],
+        [
+          "L",
+          "U",
+          "U",
+          "L",
+          "D",
+          "D"
+        ],
+        [
+          "D",
+          "U",
+          "R",
+          "R",
+          "R",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "green",
+          "green",
+          "red",
+          "red",
+          "red",
+          "blue"
+        ],
+        [
+          "green",
+          "yellow",
+          "yellow",
+          "orange",
+          "orange",
+          "blue"
+        ],
+        [
+          "purple",
+          "purple",
+          "yellow",
+          "orange",
+          "blue",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 41,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "D",
+          "U",
+          "R",
+          "R",
+          "D",
+          "U"
+        ],
+        [
+          "L",
+          "U",
+          "D",
+          "R",
+          "D",
+          "L"
+        ],
+        [
+          "L",
+          "R",
+          "D",
+          "L",
+          "U",
+          "R"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "purple",
+          "purple",
+          "blue",
+          "red",
+          "red",
+          "red"
+        ],
+        [
+          "yellow",
+          "yellow",
+          "blue",
+          "green",
+          "green",
+          "orange"
+        ],
+        [
+          "yellow",
+          "blue",
+          "blue",
+          "green",
+          "orange",
+          "orange"
+        ]
+      ]
+    },
+    {
+      "n": 42,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "U",
+          "D",
+          "U",
+          "L",
+          "L"
+        ],
+        [
+          "R",
+          "R",
+          "L",
+          "U",
+          "L",
+          "R"
+        ],
+        [
+          "U",
+          "D",
+          "U",
+          "L",
+          "D",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "red",
+          "green",
+          "green",
+          "blue",
+          "blue",
+          "purple"
+        ],
+        [
+          "red",
+          "orange",
+          "green",
+          "blue",
+          "yellow",
+          "purple"
+        ],
+        [
+          "red",
+          "orange",
+          "orange",
+          "blue",
+          "yellow",
+          "yellow"
+        ]
+      ]
+    },
+    {
+      "n": 43,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "U",
+          "R",
+          "R",
+          "D",
+          "U",
+          "L"
+        ],
+        [
+          "L",
+          "L",
+          "U",
+          "R",
+          "D",
+          "U"
+        ],
+        [
+          "R",
+          "D",
+          "D",
+          "U",
+          "D",
+          "L"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "blue",
+          "blue",
+          "blue",
+          "red",
+          "red",
+          "red"
+        ],
+        [
+          "purple",
+          "yellow",
+          "blue",
+          "green",
+          "orange",
+          "orange"
+        ],
+        [
+          "purple",
+          "yellow",
+          "yellow",
+          "green",
+          "green",
+          "orange"
+        ]
+      ]
+    },
+    {
+      "n": 44,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "R",
+          "D",
+          "U",
+          "R",
+          "R",
+          "L"
+        ],
+        [
+          "L",
+          "L",
+          "L",
+          "U",
+          "U",
+          "R"
+        ],
+        [
+          "U",
+          "R",
+          "L",
+          "R",
+          "D",
+          "U"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "green",
+          "green",
+          "blue",
+          "blue",
+          "blue",
+          "purple"
+        ],
+        [
+          "green",
+          "orange",
+          "yellow",
+          "yellow",
+          "blue",
+          "purple"
+        ],
+        [
+          "orange",
+          "orange",
+          "yellow",
+          "red",
+          "red",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 45,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "U",
+          "L",
+          "L",
+          "L",
+          "U",
+          "D"
+        ],
+        [
+          "U",
+          "R",
+          "R",
+          "R",
+          "L",
+          "L"
+        ],
+        [
+          "L",
+          "D",
+          "U",
+          "U",
+          "D",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "blue",
+          "blue",
+          "purple",
+          "red",
+          "green",
+          "green"
+        ],
+        [
+          "blue",
+          "orange",
+          "purple",
+          "red",
+          "yellow",
+          "green"
+        ],
+        [
+          "blue",
+          "orange",
+          "orange",
+          "red",
+          "yellow",
+          "yellow"
+        ]
+      ]
+    },
+    {
+      "n": 46,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "U",
+          "R",
+          "R",
+          "L",
+          "U",
+          "R"
+        ],
+        [
+          "L",
+          "D",
+          "U",
+          "L",
+          "U",
+          "L"
+        ],
+        [
+          "R",
+          "D",
+          "U",
+          "D",
+          "U",
+          "L"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "blue",
+          "blue",
+          "blue",
+          "yellow",
+          "yellow",
+          "green"
+        ],
+        [
+          "orange",
+          "orange",
+          "blue",
+          "yellow",
+          "green",
+          "green"
+        ],
+        [
+          "orange",
+          "purple",
+          "purple",
+          "red",
+          "red",
+          "red"
+        ]
+      ]
+    },
+    {
+      "n": 47,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "L",
+          "U",
+          "D",
+          "U",
+          "L",
+          "R"
+        ],
+        [
+          "L",
+          "D",
+          "U",
+          "D",
+          "U",
+          "L"
+        ],
+        [
+          "D",
+          "U",
+          "L",
+          "L",
+          "L",
+          "D"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "yellow",
+          "yellow",
+          "red",
+          "red",
+          "red",
+          "green"
+        ],
+        [
+          "yellow",
+          "orange",
+          "orange",
+          "blue",
+          "green",
+          "green"
+        ],
+        [
+          "purple",
+          "purple",
+          "orange",
+          "blue",
+          "blue",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "n": 48,
+      "nivel": "junior",
+      "dirs": [
+        [
+          "U",
+          "L",
+          "L",
+          "D",
+          "L",
+          "D"
+        ],
+        [
+          "U",
+          "L",
+          "R",
+          "R",
+          "R",
+          "L"
+        ],
+        [
+          "L",
+          "D",
+          "D",
+          "U",
+          "D",
+          "R"
+        ]
+      ],
+      "given": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "solution": [
+        [
+          "blue",
+          "blue",
+          "orange",
+          "orange",
+          "purple",
+          "red"
+        ],
+        [
+          "blue",
+          "yellow",
+          "orange",
+          "green",
+          "purple",
+          "red"
+        ],
+        [
+          "blue",
+          "yellow",
+          "yellow",
+          "green",
+          "green",
+          "red"
+        ]
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  const R=3, C=6, N=R*C;
+  const GLOSO={U:'\u2191', D:'\u2193', L:'\u2190', R:'\u2192'};
+  const ROT={U:'R', R:'D', D:'L', L:'U'};
+  const COLOR={red:'#e13b4a', orange:'#f4913a', yellow:'#f2c72e', green:'#43a047', blue:'#2f8fe6', purple:'#9b59b6'};
+
+  // Flecha grande en SVG: relleno de color (o negro si no hay pista de color) y borde grueso.
+  function flechaSVG(dir, fill, stroke, sw){
+    var ang={U:0,R:90,D:180,L:270}[dir];
+    return '<svg viewBox="0 0 100 100" class="arw" aria-hidden="true">'+
+      '<path transform="rotate('+ang+' 50 50)" d="M50 4 L84 46 L66 46 L66 96 L34 96 L34 46 L16 46 Z" '+
+      'fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" stroke-linejoin="round"/></svg>';
+  }
+
+  const DATA=JSON.parse(document.getElementById('datos').textContent);
+  const FICHAS=DATA.fichas;
+
+  // ---------- rotaciones (misma convencion que el validador) ----------
+  function rotarCeldas(celdas){
+    const n=celdas.map(function(x){ return [x[1], -x[0], ROT[x[2]]]; });
+    const mr=Math.min.apply(null, n.map(function(x){return x[0];}));
+    const mc=Math.min.apply(null, n.map(function(x){return x[1];}));
+    return n.map(function(x){ return [x[0]-mr, x[1]-mc, x[2]]; });
+  }
+  function rotaciones(celdas){
+    const out=[]; let cur=celdas;
+    for(let k=0;k<4;k++){
+      out.push(cur.map(function(x){return x.slice();}));
+      cur=rotarCeldas(cur);
+    }
+    const vistas=[], res=[];
+    out.forEach(function(cells){
+      const key=cells.slice().sort().map(function(x){return x.join(',');}).join(';');
+      if(vistas.indexOf(key)===-1){ vistas.push(key); res.push(cells); }
+    });
+    return res;
+  }
+
+  // ---------- solver: encuentra la teselacion unica (para "Ver solucion") ----------
+  function resolver(dirs, given){
+    const board=new Array(N).fill(-1);
+    const used=new Array(FICHAS.length).fill(false);
+    const posOf=new Array(FICHAS.length).fill(null);
+    const rotsAll=FICHAS.map(function(f){ return rotaciones(f.celdas); });
+    function dfs(){
+      let e=-1;
+      for(let i=0;i<N;i++){ if(board[i]===-1){ e=i; break; } }
+      if(e===-1) return true;
+      const er=Math.floor(e/C), ec=e%C;
+      for(let pi=0; pi<FICHAS.length; pi++){
+        if(used[pi]) continue;
+        for(let ri=0; ri<rotsAll[pi].length; ri++){
+          const cells=rotsAll[pi][ri];
+          for(let ci=0; ci<cells.length; ci++){
+            const ar=er-cells[ci][0], ac=ec-cells[ci][1];
+            const abs=cells.map(function(x){ return [ar+x[0], ac+x[1]]; });
+            let ok=true;
+            for(let k=0;k<abs.length;k++){
+              const rr=abs[k][0], cc=abs[k][1];
+              if(rr<0||rr>=R||cc<0||cc>=C){ ok=false; break; }
+              if(board[rr*C+cc]!==-1){ ok=false; break; }
+            }
+            if(!ok) continue;
+            let okc=true;
+            for(let k=0;k<abs.length;k++){
+              const rr=abs[k][0], cc=abs[k][1];
+              if(dirs[rr][cc]!==cells[k][2]){ okc=false; break; }
+              if(given[rr][cc]!==null && given[rr][cc]!==FICHAS[pi].color){ okc=false; break; }
+            }
+            if(!okc) continue;
+            for(let k=0;k<abs.length;k++) board[abs[k][0]*C+abs[k][1]]=pi;
+            used[pi]=true; posOf[pi]=[ar,ac,cells];
+            if(dfs()) return true;
+            for(let k=0;k<abs.length;k++) board[abs[k][0]*C+abs[k][1]]=-1;
+            used[pi]=false; posOf[pi]=null;
+          }
+        }
+      }
+      return false;
+    }
+    if(dfs()) return posOf;
+    return null;
+  }
+
+  // ---------- estado ----------
+  let ri=0;
+  let rots=FICHAS.map(function(f){ return f.celdas.map(function(x){return x.slice();}); });
+  let placed=new Array(FICHAS.length).fill(null);
+  let selected=-1;
+  let feedback=new Array(N).fill(null);
+  let lastClickTime=new Array(FICHAS.length).fill(0);
+  let lastClickPlaced=new Array(FICHAS.length).fill(false);
+
+  const tableroEl=document.getElementById('tablero');
+  const bandejaEl=document.getElementById('bandeja');
+  const msgEl=document.getElementById('mensaje');
+  const chipEl=document.getElementById('chip');
+  const nivelEl=document.getElementById('nivel');
+  const rotarBtn=document.getElementById('rotar');
+  const listaEl=document.getElementById('lista');
+  const boardEls=[];
+
+  // ---------- construccion del tablero ----------
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=document.createElement('div');
+    d.className='celda';
+    (function(rr,cc){ d.addEventListener('click', function(){ onCell(rr,cc); }); })(r,c);
+    tableroEl.appendChild(d);
+    boardEls.push(d);
+  }
+
+  // lista de retos
+  DATA.retos.forEach(function(rt, i){
+    const o=document.createElement('option');
+    o.value=i; o.textContent='Reto '+rt.n;
+    listaEl.appendChild(o);
+  });
+
+  // ---------- helpers ----------
+  function reto(){ return DATA.retos[ri]; }
+  function ocupadas(){
+    const map=new Array(N).fill(-1);
+    for(let i=0;i<FICHAS.length;i++){
+      if(placed[i]===null) continue;
+      const ar=placed[i][0], ac=placed[i][1];
+      for(let k=0;k<rots[i].length;k++){
+        map[(ar+rots[i][k][0])*C+(ac+rots[i][k][1])]=i;
+      }
+    }
+    return map;
+  }
+  function cabe(i,r,c){
+    for(let k=0;k<rots[i].length;k++){
+      const rr=r+rots[i][k][0], cc=c+rots[i][k][1];
+      if(rr<0||rr>=R||cc<0||cc>=C) return false;
+    }
+    const map=ocupadas();
+    for(let k=0;k<rots[i].length;k++){
+      if(map[(r+rots[i][k][0])*C+(c+rots[i][k][1])]!==-1) return false;
+    }
+    return true;
+  }
+
+  // ---------- eventos ----------
+  function onCell(r,c){
+    const map=ocupadas();
+    const pi=map[r*C+c];
+    // Primero intenta colocar la ficha elegida anclada en (r,c): si cabe, se coloca
+    // aunque (r,c) ya tenga ficha (p. ej. una L girada cuya esquina sup-izq. esta vacia).
+    if(selected>=0 && placed[selected]===null && cabe(selected,r,c)){
+      placed[selected]=[r,c];
+      selected=-1;
+    } else if(pi!==-1){
+      // No cabe (o no hay ficha elegida): se recoge la que hay en esa casilla.
+      placed[pi]=null;
+      selected=pi;
+    }
+    feedback=new Array(N).fill(null);
+    render();
+  }
+  function onFicha(i){
+    if(placed[i]!==null) placed[i]=null; // recogerla
+    selected=i;
+    feedback=new Array(N).fill(null);
+    render();
+  }
+  // Doble click en una ficha de la bandeja que no esta colocada = rotarla (como el boton Rotar).
+  function onPieceClick(i){
+    const wasPlaced=placed[i]!==null; // estado antes de este click
+    onFicha(i);
+    const now=Date.now();
+    if(lastClickTime[i] && (now-lastClickTime[i])<350 && lastClickPlaced[i]===false){ rotar(); }
+    lastClickTime[i]=now;
+    lastClickPlaced[i]=wasPlaced;
+  }
+  function rotar(){
+    if(selected<0) return;
+    rots[selected]=rotarCeldas(rots[selected]);
+    if(placed[selected]!==null){ // si estaba colocada, se recogen al girar
+      placed[selected]=null;
+    }
+    feedback=new Array(N).fill(null);
+    render();
+  }
+  function reiniciar(){
+    rots=FICHAS.map(function(f){ return f.celdas.map(function(x){return x.slice();}); });
+    placed=new Array(FICHAS.length).fill(null);
+    selected=-1;
+    feedback=new Array(N).fill(null);
+    msg('','');
+    render();
+  }
+  function verSolucion(){
+    const rt=reto();
+    const posOf=resolver(rt.dirs, rt.given);
+    if(!posOf){ msg('Sin solucion','ko'); return; }
+    for(let i=0;i<FICHAS.length;i++){
+      placed[i]=[posOf[i][0],posOf[i][1]];
+      rots[i]=posOf[i][2].map(function(x){return x.slice();});
+    }
+    selected=-1;
+    feedback=new Array(N).fill(null);
+    msg('Solucion colocada','av');
+    render();
+  }
+  function comprobar(){
+    const rt=reto();
+    const map=ocupadas();
+    feedback=new Array(N).fill(null);
+    let allFilled=true, mal=0;
+    for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+      const idx=r*C+c, pi=map[idx];
+      if(pi===-1){ allFilled=false; continue; }
+      const ar=placed[pi][0], ac=placed[pi][1];
+      let a=null;
+      for(let k=0;k<rots[pi].length;k++){
+        if(rots[pi][k][0]===r-ar && rots[pi][k][1]===c-ac){ a=rots[pi][k][2]; break; }
+      }
+      const dirOK=rt.dirs[r][c]===a;
+      const colOK=rt.given[r][c]===null || rt.given[r][c]===FICHAS[pi].color;
+      if(dirOK && colOK) feedback[idx]='ok';
+      else { feedback[idx]='malo'; mal++; }
+    }
+    if(allFilled && mal===0) msg('\u00A1Resuelto! Bien hecho.','ok');
+    else if(!allFilled) msg('Todavia hay casillas sin cubrir.','ko');
+    else msg('Casillas mal colocadas: '+mal+'. Revisa las flechas y los colores.','ko');
+    render();
+  }
+  function msg(t,cl){
+    msgEl.textContent=t;
+    msgEl.className='mensaje'+(cl?' '+cl:'');
+  }
+
+  // ---------- render ----------
+  function render(){
+    const rt=reto();
+    const map=ocupadas();
+    for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+      const idx=r*C+c, el=boardEls[idx], pi=map[idx];
+      const d=rt.dirs[r][c], g=rt.given[r][c];
+      el.className='celda'+(feedback[idx]?' '+feedback[idx]:'');
+      if(pi===-1){
+        el.style.background='';
+        el.innerHTML=flechaSVG(d, g?COLOR[g]:'#1a1a1a', '#1a1a1a', 7);
+      } else {
+        const ar=placed[pi][0], ac=placed[pi][1];
+        let a=null;
+        for(let k=0;k<rots[pi].length;k++){
+          if(rots[pi][k][0]===r-ar && rots[pi][k][1]===c-ac){ a=rots[pi][k][2]; break; }
+        }
+        el.style.background=COLOR[FICHAS[pi].color];
+        el.className='celda lleno'+(feedback[idx]?' '+feedback[idx]:'');
+        el.innerHTML=flechaSVG(a, '#ffffff', '#1a1a1a', 7);
+      }
+    }
+    renderTray();
+    rotarBtn.disabled=selected<0;
+  }
+  function renderTray(){
+    bandejaEl.innerHTML='';
+    for(let i=0;i<FICHAS.length;i++){
+      const f=FICHAS[i], cells=rots[i];
+      const h=Math.max.apply(null,cells.map(function(x){return x[0];}))+1;
+      const w=Math.max.apply(null,cells.map(function(x){return x[1];}))+1;
+      const el=document.createElement('div');
+      el.className='ficha'+(selected===i?' elegida':'')+(placed[i]!==null?' puesta':'');
+      let g='';
+      for(let rr=0;rr<h;rr++)for(let cc=0;cc<w;cc++){
+        let cell=null;
+        for(let k=0;k<cells.length;k++) if(cells[k][0]===rr&&cells[k][1]===cc) cell=cells[k];
+        if(cell) g+='<span class="pc" style="background:'+COLOR[f.color]+'">'+flechaSVG(cell[2], '#ffffff', '#1a1a1a', 7)+'</span>';
+        else g+='<span class="pc vac"></span>';
+      }
+      el.innerHTML='<div class="mini" style="grid-template-columns:repeat('+w+',2rem)">'+g+'</div>';
+      (function(i){ el.addEventListener('click', function(){ onPieceClick(i); }); })(i);
+      bandejaEl.appendChild(el);
+    }
+  }
+
+  // ---------- navegación ----------
+  function irA(i){
+    ri=Math.max(0, Math.min(DATA.retos.length-1, i));
+    chipEl.textContent='Reto '+DATA.retos[ri].n;
+    nivelEl.textContent=DATA.retos[ri].nivel;
+    listaEl.value=ri;
+    reiniciar();
+  }
+  document.getElementById('anterior').addEventListener('click', function(){ irA(ri-1); });
+  document.getElementById('siguiente').addEventListener('click', function(){ irA(ri+1); });
+  listaEl.addEventListener('change', function(){ irA(parseInt(this.value,10)); });
+  rotarBtn.addEventListener('click', rotar);
+  document.getElementById('comprobar').addEventListener('click', comprobar);
+  document.getElementById('solucion').addEventListener('click', verSolucion);
+  document.getElementById('reiniciar').addEventListener('click', reiniciar);
+
+  irA(0);
+})();
+</script>
+</body>
+</html>
